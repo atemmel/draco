@@ -39,8 +39,9 @@ pub const Window = struct {
     }
 
     pub fn up(self: *Window) void {
-        const left_buffer = self.buffer.items[0..self.cursor];
-        const newline = std.mem.lastIndexOfScalar(u8, left_buffer, '\n');
+        _ = self;
+        //const left_buffer = self.buffer.items[0..self.cursor];
+        //const newline = std.mem.lastIndexOfScalar(u8, left_buffer, '\n');
         //TODO: simd search to newline backwards from cursor
 
     }
