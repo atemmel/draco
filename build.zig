@@ -30,6 +30,18 @@ pub fn build(b: *std.Build) void {
     });
     const sdl = sdl_dep.artifact("SDL3");
 
+    const sdl_ttf_dep = b.dependency("SDL_ttf", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    const sdl_ttf = sdl_ttf_dep.artifact("SDL3_ttf");
+
+    const sdl_image_dep = b.dependency("SDL_image", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    const sdl_image = sdl_image_dep.artifact("SDL3_image");
+
     // We will also create a module for our other entry point, 'main.zig'.
     const exe_mod = b.createModule(.{
         // `root_source_file` is the Zig "entry point" of the module. If a module
@@ -41,6 +53,8 @@ pub fn build(b: *std.Build) void {
     });
 
     exe_mod.linkLibrary(sdl);
+    exe_mod.linkLibrary(sdl_ttf);
+    exe_mod.linkLibrary(sdl_image);
 
     // This creates another `std.Build.Step.Compile`, but this one builds an executable
     // rather than a static library.
