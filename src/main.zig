@@ -31,6 +31,8 @@ const FG = Vec4{
     .w = 1.0,
 };
 
+const DEFAULT_BODY_SIZE = 20.0;
+
 var window: ?*c.SDL_Window = undefined;
 pub var renderer: ?*c.SDL_Renderer = undefined;
 var refresh_rate_ns: u64 = undefined;
@@ -81,7 +83,7 @@ pub fn main() !void {
         return;
     };
 
-    body_font = c.TTF_OpenFontIO(c.SDL_IOFromConstMem(font_bytes.ptr, font_bytes.len), false, 20.0) orelse {
+    body_font = c.TTF_OpenFontIO(c.SDL_IOFromConstMem(font_bytes.ptr, font_bytes.len), false, DEFAULT_BODY_SIZE) orelse {
         std.debug.print("Couldn't open font: {s}\n", .{c.SDL_GetError()});
         return;
     };
@@ -119,6 +121,8 @@ var was_pos = Vec2{
     .x = -1.0,
     .y = -1.0,
 };
+var zoom_scalar: f32 = 1.0;
+var ctrl_down = false;
 
 fn loop() void {
     var running = true;
@@ -135,6 +139,7 @@ fn loop() void {
                 },
                 c.SDL_EVENT_KEY_DOWN => {
                     did_input = true;
+                    ctrl_down = event.key.mod & c.SDL_KMOD_CTRL != 0;
                     switch (event.key.key) {
                         c.SDLK_ESCAPE => {
                             running = false;
@@ -165,10 +170,28 @@ fn loop() void {
                         c.SDLK_DOWN => {
                             editor.window.down();
                         },
+                        c.SDLK_PLUS => {
+                            if (event.key.mod & c.SDL_KMOD_CTRL != 0) {
+                                zoom_scalar += 0.1;
+                                _ = c.TTF_SetFontSize(body_font, DEFAULT_BODY_SIZE * zoom_scalar);
+                            }
+                        },
+                        c.SDLK_MINUS => {
+                            if (event.key.mod & c.SDL_KMOD_CTRL != 0) {
+                                zoom_scalar -= 0.1;
+                                _ = c.TTF_SetFontSize(body_font, DEFAULT_BODY_SIZE * zoom_scalar);
+                            }
+                        },
                         else => {},
                     }
                 },
+                c.SDL_EVENT_KEY_UP => {
+                    ctrl_down = event.key.mod & c.SDL_KMOD_CTRL != 0;
+                },
                 c.SDL_EVENT_TEXT_INPUT => {
+                    if (ctrl_down) {
+                        continue;
+                    }
                     did_input = true;
                     editor.window.insert(std.mem.span(event.text.text));
                 },
@@ -219,7 +242,7 @@ fn draw(dt: f32) void {
         .x = was_pos.x,
         .y = was_pos.y,
         .w = 2.0,
-        .h = 20.0,
+        .h = 20.0 * zoom_scalar,
     };
 
     _ = c.SDL_SetRenderDrawColorFloat(renderer, BG.x, BG.y, BG.z, BG.w);
