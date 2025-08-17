@@ -4,6 +4,10 @@ const pow = std.math.pow;
 pub const Vec2 = struct {
     x: f32,
     y: f32,
+
+    pub fn eql(lhs: Vec2, rhs: Vec2, epsilon: f32) bool {
+        return @abs(lhs.x - rhs.x) <= epsilon and @abs(lhs.y - rhs.y) <= epsilon;
+    }
 };
 
 pub const Vec4 = struct {

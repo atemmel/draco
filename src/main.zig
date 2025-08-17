@@ -115,22 +115,21 @@ var was_pos = Vec2{
     .y = -1.0,
 };
 
-fn maybeAnimate() void {}
-
 fn loop() void {
-    last_tick = std.time.microTimestamp();
     var running = true;
     var event: c.SDL_Event = undefined;
     while (running) {
         const current_tick = std.time.microTimestamp();
         defer last_tick = current_tick;
         const dt = @as(f32, @floatFromInt(current_tick - last_tick)) / std.time.us_per_s;
+        var did_input = false;
         while (c.SDL_PollEvent(&event)) {
             switch (event.type) {
                 c.SDL_EVENT_QUIT => {
                     running = false;
                 },
                 c.SDL_EVENT_KEY_DOWN => {
+                    did_input = true;
                     switch (event.key.key) {
                         c.SDLK_ESCAPE => {
                             running = false;
@@ -140,28 +139,27 @@ fn loop() void {
                                 std.debug.print("A PRESSED\n", .{});
                             }
                         },
+                        c.SDLK_RETURN => {
+                            editor.window.insertNewline();
+                        },
                         c.SDLK_BACKSPACE => {
                             editor.window.removeFrontCursor();
-                            maybeAnimate();
                         },
                         c.SDLK_DELETE => {
                             editor.window.removeBehindCursor();
-                            maybeAnimate();
                         },
                         c.SDLK_LEFT => {
                             editor.window.left();
-                            maybeAnimate();
                         },
                         c.SDLK_RIGHT => {
                             editor.window.right();
-                            maybeAnimate();
                         },
                         else => {},
                     }
                 },
                 c.SDL_EVENT_TEXT_INPUT => {
+                    did_input = true;
                     editor.window.insert(std.mem.span(event.text.text));
-                    maybeAnimate();
                 },
                 else => {},
             }
@@ -170,37 +168,58 @@ fn loop() void {
             break;
         }
 
-        const dim = rend.strdim(body_font, editor.window.buffer.items[0..editor.window.cursor]);
-        const is_pos = Vec2{
-            .x = dim.w + 100.0,
-            .y = 200.0,
-        };
+        defer sleepNextFrame();
 
-        if (was_pos.x == -1.0 and was_pos.y == -1.0) {
-            was_pos = is_pos;
+        if (!animating and !did_input and last_tick > 0) {
+            continue;
         }
 
-        was_pos = .{
-            .x = math.damp(is_pos.x, was_pos.x, 0.0001, dt),
-            .y = math.damp(is_pos.y, was_pos.y, 0.0001, dt),
-        };
-        const rect = c.SDL_FRect{
-            .x = was_pos.x,
-            .y = was_pos.y,
-            .w = 2.0,
-            .h = 20.0,
-        };
-
-        _ = c.SDL_SetRenderDrawColorFloat(renderer, BG.x, BG.y, BG.z, BG.w);
-        _ = c.SDL_RenderClear(renderer);
-        rend.drawText(header_font, "Title", FG, 100.0, 100.0);
-        rend.drawText(body_font, editor.window.buffer.items, FG, 100.0, 200.0);
-        _ = c.SDL_SetRenderDrawColorFloat(renderer, FG.x, FG.y, FG.z, FG.w);
-        _ = c.SDL_RenderFillRect(renderer, &rect);
-        _ = c.SDL_RenderPresent(renderer);
-
-        sleepNextFrame();
+        draw(dt);
     }
+}
+
+fn draw(dt: f32) void {
+    const offset_x = 100.0;
+    const offset_y = 200.0;
+    const line_height = c.TTF_GetFontSize(body_font);
+
+    const cursor_pos = editor.window.cursorPos();
+    const dim = rend.strdim(body_font, cursor_pos.text_left_of_cursor);
+    const is_pos = Vec2{
+        .x = offset_x + dim.w,
+        .y = offset_y + line_height * cursor_pos.row,
+    };
+
+    if (was_pos.x == -1.0 and was_pos.y == -1.0) {
+        was_pos = is_pos;
+    }
+
+    animating = !was_pos.eql(is_pos, 0.1);
+
+    const dampning = 0.001;
+    const dt_mult = 2;
+    was_pos = .{
+        .x = math.damp(is_pos.x, was_pos.x, dampning, dt * dt_mult),
+        .y = math.damp(is_pos.y, was_pos.y, dampning, dt * dt_mult),
+    };
+    const rect = c.SDL_FRect{
+        .x = was_pos.x,
+        .y = was_pos.y,
+        .w = 2.0,
+        .h = 20.0,
+    };
+
+    _ = c.SDL_SetRenderDrawColorFloat(renderer, BG.x, BG.y, BG.z, BG.w);
+    _ = c.SDL_RenderClear(renderer);
+    rend.drawText(header_font, "Title", FG, 100.0, 100.0);
+    for (editor.window.allLines(), 0..) |_, idx| {
+        const slice = editor.window.lineSlice(idx);
+        rend.drawText(body_font, slice, FG, offset_x, offset_y + @as(f32, @floatFromInt(idx)) * c.TTF_GetFontSize(body_font));
+    }
+
+    _ = c.SDL_SetRenderDrawColorFloat(renderer, FG.x, FG.y, FG.z, FG.w);
+    _ = c.SDL_RenderFillRect(renderer, &rect);
+    _ = c.SDL_RenderPresent(renderer);
 }
 
 comptime {
