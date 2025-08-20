@@ -1,4 +1,5 @@
 const std = @import("std");
+const rend = @import("renderer.zig");
 
 const Vec2 = @import("math.zig").Vec2;
 
@@ -7,20 +8,36 @@ const assert = std.debug.assert;
 const Line = struct {
     begin: usize,
     end: usize,
+    virtual_lines: VirtualLine = .{
+        .begin = 0,
+        .end = 0,
+    },
+};
+
+const VirtualLine = struct {
+    begin: usize,
+    end: usize,
 };
 
 pub const Window = struct {
     arena: std.heap.ArenaAllocator,
     buffer: std.ArrayList(u8),
     lines: std.ArrayList(Line),
+    virtual_lines: std.ArrayList(VirtualLine),
     cursor: usize = 0,
     active_file: []const u8 = "",
+    rightmost_cursor_codepoint: usize = 0,
 
     pub fn init(base_allocator: std.mem.Allocator) !Window {
-        var arena = std.heap.ArenaAllocator.init(base_allocator);
-        const buffer = try std.ArrayList(u8).initCapacity(arena.allocator(), 1024);
-        var lines = try std.ArrayList(Line).initCapacity(arena.allocator(), 128);
+        const arena = std.heap.ArenaAllocator.init(base_allocator);
+        const buffer = try std.ArrayList(u8).initCapacity(base_allocator, 1024);
+        var lines = try std.ArrayList(Line).initCapacity(base_allocator, 128);
         lines.appendAssumeCapacity(Line{
+            .begin = 0,
+            .end = 0,
+        });
+        var virtual_lines = try std.ArrayList(VirtualLine).initCapacity(base_allocator, 128);
+        virtual_lines.appendAssumeCapacity(VirtualLine{
             .begin = 0,
             .end = 0,
         });
@@ -28,10 +45,14 @@ pub const Window = struct {
             .arena = arena,
             .buffer = buffer,
             .lines = lines,
+            .virtual_lines = virtual_lines,
         };
     }
 
     pub fn deinit(self: *Window) void {
+        self.buffer.deinit();
+        self.lines.deinit();
+        self.virtual_lines.deinit();
         self.arena.deinit();
     }
 
@@ -75,12 +96,16 @@ pub const Window = struct {
         const writer = self.buffer.writer();
         const reader = file.reader();
         var fifo = std.fifo.LinearFifo(u8, .{ .Static = 8192 }).init();
-        fifo.pump(reader, writer) catch {};
+        fifo.pump(reader, writer) catch |e| {
+            std.debug.print("{any}\n", .{e});
+            unreachable;
+        };
         self.reindex();
     }
 
     fn reindex(self: *Window) void {
         self.reindexLines() catch @panic("OOM");
+        self.reindexVirtualLines() catch @panic("OOM");
     }
 
     fn reindexLines(self: *Window) !void {
@@ -102,10 +127,67 @@ pub const Window = struct {
         });
     }
 
+    fn reindexVirtualLines(self: *Window) !void {
+        self.virtual_lines.clearRetainingCapacity();
+
+        const max_width = 800; //TODO: no hardcoded
+
+        for (self.allLines(), 0..) |_, idx| {
+            const virtual_line_slice_begin = self.virtual_lines.items.len;
+            const line_slice = self.lineSlice(idx);
+            var virtual_line_begin: usize = 0;
+            var word_begin: usize = 0;
+            var i: usize = 0;
+            var x: f32 = 0;
+            while (i < line_slice.len) : (i += 1) {
+                if (line_slice[i] != ' ') {
+                    continue;
+                }
+                i = @min(i + 1, line_slice.len);
+                const word = line_slice[word_begin..i];
+                const word_dim = rend.strdim(rend.body_font, word);
+                if (word_dim.w + x > max_width) {
+                    try self.virtual_lines.append(.{
+                        .begin = virtual_line_begin,
+                        .end = i,
+                    });
+                    x = 0;
+                    word_begin = i;
+                    virtual_line_begin = i;
+                }
+
+                word_begin = i;
+                x += word_dim.w;
+            }
+            const word = line_slice[word_begin..];
+            const word_dim = rend.strdim(rend.body_font, word);
+            if (word_dim.w + x > max_width) {
+                try self.virtual_lines.append(.{
+                    .begin = virtual_line_begin,
+                    .end = i,
+                });
+                x = 0;
+                word_begin = i;
+                virtual_line_begin = i;
+            }
+            try self.virtual_lines.append(.{
+                .begin = virtual_line_begin,
+                .end = i,
+            });
+
+            const virtual_line_slice_end = self.virtual_lines.items.len;
+            self.lines.items[idx].virtual_lines = .{
+                .begin = virtual_line_slice_begin,
+                .end = virtual_line_slice_end,
+            };
+        }
+    }
+
     pub fn insert(self: *Window, what: []const u8) void {
         self.buffer.insertSlice(self.cursor, what) catch @panic("OOM");
         self.cursor += what.len;
         self.reindex();
+        self.rightmost_cursor_codepoint = self.codepointsLeftOfCursor();
     }
 
     pub fn insertNewline(self: *Window) void {
@@ -113,6 +195,7 @@ pub const Window = struct {
         self.reindex();
         self.cursor += 1;
         self.down();
+        self.rightmost_cursor_codepoint = self.codepointsLeftOfCursor();
     }
 
     fn byte(self: *Window, idx: usize) u8 {
@@ -188,17 +271,21 @@ pub const Window = struct {
     }
 
     pub fn left(self: *Window) void {
-        if (self.cursor > 0) {
-            const n = self.bytesUntilNearestCodepointLeft();
-            self.cursor -= n;
+        if (self.cursor <= 0) {
+            return;
         }
+        const n = self.bytesUntilNearestCodepointLeft();
+        self.cursor -= n;
+        self.rightmost_cursor_codepoint = self.codepointsLeftOfCursor();
     }
 
     pub fn right(self: *Window) void {
-        if (self.cursor < self.buffer.items.len) {
-            const n = self.bytesUntilNearestCodepointRight();
-            self.cursor += n;
+        if (self.cursor >= self.buffer.items.len) {
+            return;
         }
+        const n = self.bytesUntilNearestCodepointRight();
+        self.cursor += n;
+        self.rightmost_cursor_codepoint = self.codepointsLeftOfCursor();
     }
 
     pub fn up(self: *Window) void {
@@ -207,10 +294,8 @@ pub const Window = struct {
             return;
         }
         const line = self.allLines()[pos.row - 1];
-        const left_of_cursor = codepointsLeftOfCursor(self);
-        const bytes_to_skip = self.byteOfNthCodepointOfLine(line, left_of_cursor);
-
-        self.cursor = @min(line.begin + bytes_to_skip, line.end);
+        const offset = self.byteOfNthCodepointOfLine(line, self.rightmost_cursor_codepoint);
+        self.cursor = @min(line.begin + offset, line.end);
     }
 
     pub fn down(self: *Window) void {
@@ -219,10 +304,22 @@ pub const Window = struct {
             return;
         }
         const line = self.allLines()[pos.row + 1];
-        const left_of_cursor = codepointsLeftOfCursor(self);
-        const bytes_to_skip = self.byteOfNthCodepointOfLine(line, left_of_cursor);
+        const offset = self.byteOfNthCodepointOfLine(line, self.rightmost_cursor_codepoint);
+        self.cursor = @min(line.begin + offset, line.end);
+    }
 
-        self.cursor = @min(line.begin + bytes_to_skip, line.end);
+    pub fn beginningOfLine(self: *Window) void {
+        const pos = self.cursorPos();
+        const line = self.allLines()[pos.row];
+        self.cursor = line.begin;
+        self.rightmost_cursor_codepoint = self.codepointsLeftOfCursor();
+    }
+
+    pub fn endOfLine(self: *Window) void {
+        const pos = self.cursorPos();
+        const line = self.allLines()[pos.row];
+        self.cursor = line.end;
+        self.rightmost_cursor_codepoint = self.codepointsLeftOfCursor();
     }
 
     pub fn removeRightCursor(self: *Window) void {
@@ -233,6 +330,7 @@ pub const Window = struct {
             }
         }
         self.reindex();
+        self.rightmost_cursor_codepoint = self.codepointsLeftOfCursor();
     }
 
     pub fn removeLeftCursor(self: *Window) void {
@@ -244,6 +342,7 @@ pub const Window = struct {
             }
         }
         self.reindex();
+        self.rightmost_cursor_codepoint = self.codepointsLeftOfCursor();
     }
 
     pub fn allLines(self: *Window) []const Line {
@@ -253,6 +352,11 @@ pub const Window = struct {
     pub fn lineSlice(self: *Window, idx: usize) []const u8 {
         const line = self.lines.items[idx];
         return self.buffer.items[line.begin..line.end];
+    }
+
+    pub fn virtualLines(self: *Window, real_line: usize) []VirtualLine {
+        const virtual_line_idx = self.lines.items[real_line].virtual_lines;
+        return self.virtual_lines.items[virtual_line_idx.begin..virtual_line_idx.end];
     }
 
     pub fn cursorPos(self: *Window) struct {
@@ -271,14 +375,38 @@ pub const Window = struct {
         unreachable;
     }
 
+    pub fn virtualCursorPos(self: *Window) struct {
+        virtual_row: usize,
+        column: usize,
+    } {
+        std.debug.print("virt {any}\n", .{self.virtual_lines.items});
+        const cursor = self.cursor;
+        for (self.allLines()) |line| {
+            if (cursor >= line.begin and cursor <= line.end) {
+                std.debug.print("{} is between {} and {}\n", .{ cursor, line.begin, line.end });
+                const slice = self.virtual_lines.items[line.virtual_lines.begin..line.virtual_lines.end];
+                for (slice, 0..) |virt_line, idx| {
+                    std.debug.print("test {} of {} if {} is perhaps between {} and {}\n", .{ idx + 1, slice.len, cursor, virt_line.begin, virt_line.end });
+                    if (cursor >= virt_line.begin and cursor <= virt_line.end) {
+                        return .{
+                            .virtual_row = idx,
+                            .column = cursor - line.begin,
+                        };
+                    }
+                }
+            }
+        }
+        unreachable;
+    }
+
     pub fn cursorDrawData(self: *Window) struct {
-        row: f32,
+        virtual_row: f32,
         text_left_of_cursor: []const u8,
     } {
-        const pos = self.cursorPos();
-        const line = self.lines.items[pos.row];
+        const pos = self.virtualCursorPos();
+        const line = self.virtual_lines.items[pos.virtual_row];
         return .{
-            .row = @floatFromInt(pos.row),
+            .virtual_row = @floatFromInt(pos.virtual_row),
             .text_left_of_cursor = self.buffer.items[line.begin .. line.begin + pos.column],
         };
     }
