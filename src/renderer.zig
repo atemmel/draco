@@ -10,6 +10,9 @@ const c = @cImport({
     @cInclude("SDL3_image/SDL_image.h");
 });
 
+pub var header_font: ?*c.TTF_Font = undefined;
+pub var body_font: ?*c.TTF_Font = undefined;
+
 pub fn drawText(font: ?*c.TTF_Font, text: []const u8, color: Vec4, x: f32, y: f32) void {
     if (text.len == 0) {
         return;
