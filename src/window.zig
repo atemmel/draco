@@ -248,13 +248,29 @@ pub const Window = struct {
     }
 
     fn codepointsLeftOfCursor(self: *Window) usize {
-        const pos = self.cursorPos();
-        const line = self.allLines()[pos.row];
+        const pos = self.virtualCursorPos();
+        const line = self.allVirtualLines()[pos.virtual_row];
         const slice = self.buffer.items[line.begin..self.cursor];
         return std.unicode.utf8CountCodepoints(slice) catch self.cursor - line.begin;
     }
 
     fn byteOfNthCodepointOfLine(self: *Window, line: Line, n: usize) usize {
+        const slice = self.buffer.items[line.begin..line.end];
+        const view = std.unicode.Utf8View.init(slice) catch @panic("OOPS");
+        var result: usize = 0;
+        var i: usize = 0;
+        var it = view.iterator();
+        while (it.nextCodepointSlice()) |u| {
+            if (i >= n) {
+                break;
+            }
+            result += u.len;
+            i += 1;
+        }
+        return result;
+    }
+
+    fn byteOfNthCodepointOfVirtualLine(self: *Window, line: VirtualLine, n: usize) usize {
         const slice = self.buffer.items[line.begin..line.end];
         const view = std.unicode.Utf8View.init(slice) catch @panic("OOPS");
         var result: usize = 0;
@@ -289,35 +305,35 @@ pub const Window = struct {
     }
 
     pub fn up(self: *Window) void {
-        const pos = self.cursorPos();
-        if (pos.row <= 0) {
+        const pos = self.virtualCursorPos();
+        if (pos.virtual_row <= 0) {
             return;
         }
-        const line = self.allLines()[pos.row - 1];
-        const offset = self.byteOfNthCodepointOfLine(line, self.rightmost_cursor_codepoint);
+        const line = self.allVirtualLines()[pos.virtual_row - 1];
+        const offset = self.byteOfNthCodepointOfVirtualLine(line, self.rightmost_cursor_codepoint);
         self.cursor = @min(line.begin + offset, line.end);
     }
 
     pub fn down(self: *Window) void {
-        const pos = self.cursorPos();
-        if (pos.row + 1 >= self.allLines().len) {
+        const pos = self.virtualCursorPos();
+        if (pos.virtual_row + 1 >= self.allVirtualLines().len) {
             return;
         }
-        const line = self.allLines()[pos.row + 1];
-        const offset = self.byteOfNthCodepointOfLine(line, self.rightmost_cursor_codepoint);
+        const line = self.allVirtualLines()[pos.virtual_row + 1];
+        const offset = self.byteOfNthCodepointOfVirtualLine(line, self.rightmost_cursor_codepoint);
         self.cursor = @min(line.begin + offset, line.end);
     }
 
     pub fn beginningOfLine(self: *Window) void {
-        const pos = self.cursorPos();
-        const line = self.allLines()[pos.row];
+        const pos = self.virtualCursorPos();
+        const line = self.allLines()[pos.virtual_row];
         self.cursor = line.begin;
         self.rightmost_cursor_codepoint = self.codepointsLeftOfCursor();
     }
 
     pub fn endOfLine(self: *Window) void {
-        const pos = self.cursorPos();
-        const line = self.allLines()[pos.row];
+        const pos = self.virtualCursorPos();
+        const line = self.allLines()[pos.virtual_row];
         self.cursor = line.end;
         self.rightmost_cursor_codepoint = self.codepointsLeftOfCursor();
     }
@@ -347,6 +363,10 @@ pub const Window = struct {
 
     pub fn allLines(self: *Window) []const Line {
         return self.lines.items;
+    }
+
+    pub fn allVirtualLines(self: *Window) []const VirtualLine {
+        return self.virtual_lines.items;
     }
 
     pub fn lineSlice(self: *Window, idx: usize) []const u8 {
@@ -388,7 +408,7 @@ pub const Window = struct {
                     //std.debug.print("test {} of {} if {} is perhaps between {} and {}\n", .{ idx + 1, slice.len, cursor, virt_line.begin, virt_line.end });
                     if (cursor >= virt_line.begin and cursor <= virt_line.end) {
                         return .{
-                            .virtual_row = idx,
+                            .virtual_row = line.virtual_lines.begin + idx,
                             .column = cursor - virt_line.begin,
                         };
                     }
