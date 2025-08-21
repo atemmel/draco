@@ -271,7 +271,7 @@ fn draw(dt: f32) void {
     _ = c.SDL_RenderClear(renderer);
     rend.drawText(rend.header_font, "Title  q8^)", FG, 100.0, 100.0);
     var n_virtual_line: usize = 0;
-    for (editor.window.allLines(), 0..) |_, idx| {
+    for (editor.window.allRealLines(), 0..) |_, idx| {
         const line_no_str = std.fmt.bufPrint(&static.buffer, "{}", .{idx + 1}) catch "X";
         rend.drawText(rend.body_font, line_no_str, FG_2, line_no_offset_x, offset_y + @as(f32, @floatFromInt(n_virtual_line)) * line_height);
 
@@ -282,37 +282,6 @@ fn draw(dt: f32) void {
             rend.drawText(rend.body_font, slice, FG, offset_x, offset_y + @as(f32, @floatFromInt(n_virtual_line)) * line_height);
             n_virtual_line += 1;
         }
-
-        //const line_slice = editor.window.lineSlice(idx);
-        //var word_begin: usize = 0;
-        //var i: usize = 0;
-        //var x: f32 = 0;
-        //const max_width = 800; //TODO: no hardcoded
-        //while (i < line_slice.len) : (i += 1) {
-        //if (line_slice[i] != ' ') {
-        //continue;
-        //}
-        //i = @min(i + 1, line_slice.len);
-        //const word = line_slice[word_begin..i];
-        //const word_dim = rend.strdim(rend.body_font, word);
-        //if (word_dim.w + x > max_width) {
-        //x = 0;
-        //virtual_line += 1;
-        //}
-        //rend.drawText(rend.body_font, word, FG, offset_x + x, offset_y + @as(f32, @floatFromInt(virtual_line)) * line_height);
-
-        //word_begin = i;
-        //x += word_dim.w;
-        //}
-        //const word = line_slice[word_begin..];
-        //const word_dim = rend.strdim(rend.body_font, word);
-        //if (word_dim.w + x > max_width) {
-        //x = 0;
-        //virtual_line += 1;
-        //}
-        //rend.drawText(rend.body_font, word, FG, offset_x + x, offset_y + @as(f32, @floatFromInt(virtual_line)) * line_height);
-        //
-        //virtual_line += 1;
     }
 
     _ = c.SDL_SetRenderDrawColorFloat(renderer, FG.x, FG.y, FG.z, FG.w);

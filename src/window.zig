@@ -104,11 +104,11 @@ pub const Window = struct {
     }
 
     fn reindex(self: *Window) void {
-        self.reindexLines() catch @panic("OOM");
+        self.reindexRealLines() catch @panic("OOM");
         self.reindexVirtualLines() catch @panic("OOM");
     }
 
-    fn reindexLines(self: *Window) !void {
+    fn reindexRealLines(self: *Window) !void {
         self.lines.clearRetainingCapacity();
         var begin: usize = 0;
         for (self.buffer.items, 0..) |c, idx| {
@@ -132,7 +132,7 @@ pub const Window = struct {
 
         const max_width = 800; //TODO: no hardcoded
 
-        for (self.allLines(), 0..) |line, idx| {
+        for (self.allRealLines(), 0..) |line, idx| {
             const virtual_line_slice_begin = self.virtual_lines.items.len;
             const line_slice = self.buffer.items[0..line.end];
             var virtual_line_begin: usize = line.begin;
@@ -254,22 +254,6 @@ pub const Window = struct {
         return std.unicode.utf8CountCodepoints(slice) catch self.cursor - line.begin;
     }
 
-    fn byteOfNthCodepointOfLine(self: *Window, line: Line, n: usize) usize {
-        const slice = self.buffer.items[line.begin..line.end];
-        const view = std.unicode.Utf8View.init(slice) catch @panic("OOPS");
-        var result: usize = 0;
-        var i: usize = 0;
-        var it = view.iterator();
-        while (it.nextCodepointSlice()) |u| {
-            if (i >= n) {
-                break;
-            }
-            result += u.len;
-            i += 1;
-        }
-        return result;
-    }
-
     fn byteOfNthCodepointOfVirtualLine(self: *Window, line: VirtualLine, n: usize) usize {
         const slice = self.buffer.items[line.begin..line.end];
         const view = std.unicode.Utf8View.init(slice) catch @panic("OOPS");
@@ -326,14 +310,14 @@ pub const Window = struct {
 
     pub fn beginningOfLine(self: *Window) void {
         const pos = self.virtualCursorPos();
-        const line = self.allLines()[pos.virtual_row];
+        const line = self.allRealLines()[pos.virtual_row];
         self.cursor = line.begin;
         self.rightmost_cursor_codepoint = self.codepointsLeftOfCursor();
     }
 
     pub fn endOfLine(self: *Window) void {
         const pos = self.virtualCursorPos();
-        const line = self.allLines()[pos.virtual_row];
+        const line = self.allRealLines()[pos.virtual_row];
         self.cursor = line.end;
         self.rightmost_cursor_codepoint = self.codepointsLeftOfCursor();
     }
@@ -361,7 +345,7 @@ pub const Window = struct {
         self.rightmost_cursor_codepoint = self.codepointsLeftOfCursor();
     }
 
-    pub fn allLines(self: *Window) []const Line {
+    pub fn allRealLines(self: *Window) []const Line {
         return self.lines.items;
     }
 
@@ -379,33 +363,15 @@ pub const Window = struct {
         return self.virtual_lines.items[virtual_line_idx.begin..virtual_line_idx.end];
     }
 
-    pub fn cursorPos(self: *Window) struct {
-        row: usize,
-        column: usize,
-    } {
-        const cursor = self.cursor;
-        for (self.allLines(), 0..) |line, idx| {
-            if (cursor >= line.begin and cursor <= line.end) {
-                return .{
-                    .row = idx,
-                    .column = cursor - line.begin,
-                };
-            }
-        }
-        unreachable;
-    }
-
     pub fn virtualCursorPos(self: *Window) struct {
         virtual_row: usize,
         column: usize,
     } {
         const cursor = self.cursor;
-        for (self.allLines()) |line| {
+        for (self.allRealLines()) |line| {
             if (cursor >= line.begin and cursor <= line.end) {
-                //std.debug.print("{} is between {} and {}\n", .{ cursor, line.begin, line.end });
                 const slice = self.virtual_lines.items[line.virtual_lines.begin..line.virtual_lines.end];
                 for (slice, 0..) |virt_line, idx| {
-                    //std.debug.print("test {} of {} if {} is perhaps between {} and {}\n", .{ idx + 1, slice.len, cursor, virt_line.begin, virt_line.end });
                     if (cursor >= virt_line.begin and cursor <= virt_line.end) {
                         return .{
                             .virtual_row = line.virtual_lines.begin + idx,
