@@ -128,6 +128,7 @@ var was_pos = Vec2{
 };
 var zoom_scalar: f32 = 1.0;
 var ctrl_down = false;
+var viewport = Vec2{}; //TODO: this
 
 fn loop() void {
     var running = true;
