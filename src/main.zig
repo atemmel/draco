@@ -128,7 +128,7 @@ var was_pos = Vec2{
 };
 var zoom_scalar: f32 = 1.0;
 var ctrl_down = false;
-var viewport = Vec2{}; //TODO: this
+var viewport = Vec2{};
 
 fn loop() void {
     var running = true;
@@ -232,9 +232,11 @@ fn loop() void {
 
 fn draw(dt: f32) void {
     const offset_x = 100.0;
-    const line_no_offset_x = 50.0;
+    const line_no_offset_x = offset_x - 20.0;
     const offset_y = 200.0;
     const line_height = c.TTF_GetFontSize(rend.body_font) + 4.0;
+
+    //const lines_on_screen = H / line_height;
 
     const static = struct {
         var buffer: [1024]u8 = undefined;
@@ -274,7 +276,8 @@ fn draw(dt: f32) void {
     var n_virtual_line: usize = 0;
     for (editor.window.allRealLines(), 0..) |_, idx| {
         const line_no_str = std.fmt.bufPrint(&static.buffer, "{}", .{idx + 1}) catch "X";
-        rend.drawText(rend.body_font, line_no_str, FG_2, line_no_offset_x, offset_y + @as(f32, @floatFromInt(n_virtual_line)) * line_height);
+        const line_no_dim = rend.strdim(rend.body_font, line_no_str);
+        rend.drawText(rend.body_font, line_no_str, FG_2, line_no_offset_x - line_no_dim.w, offset_y + @as(f32, @floatFromInt(n_virtual_line)) * line_height);
 
         const virtual_lines = editor.window.virtualLines(idx);
 
