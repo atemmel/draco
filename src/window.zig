@@ -309,7 +309,7 @@ pub const Window = struct {
         const offset = self.byteOfNthCodepointOfVirtualLine(line, self.rightmost_cursor_codepoint);
         self.cursor = @min(line.begin + offset, line.end);
 
-        if (pos.virtual_row < self.scroll_offset + self.lines_on_screen) {
+        if (pos.virtual_row < self.scroll_offset) {
             self.scroll_offset -= 1;
         }
     }
@@ -323,7 +323,7 @@ pub const Window = struct {
         const offset = self.byteOfNthCodepointOfVirtualLine(line, self.rightmost_cursor_codepoint);
         self.cursor = @min(line.begin + offset, line.end);
 
-        if (pos.virtual_row + 1 > self.scroll_offset + self.lines_on_screen) {
+        if (pos.virtual_row + 1 >= self.scroll_offset + self.lines_on_screen) {
             self.scroll_offset += 1;
         }
     }

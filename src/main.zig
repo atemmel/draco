@@ -246,7 +246,7 @@ fn draw(dt: f32) void {
     const dim = rend.strdim(rend.body_font, cursor_data.text_left_of_cursor);
     const is_pos = Vec2{
         .x = offset_x + dim.w,
-        .y = offset_y + line_height * cursor_data.virtual_row,
+        .y = offset_y + line_height * (cursor_data.virtual_row - @as(f32, @floatFromInt(editor.window.scroll_offset))),
     };
 
     if (was_pos.x == -1.0 and was_pos.y == -1.0) {
