@@ -236,7 +236,8 @@ fn draw(dt: f32) void {
     const offset_y = 200.0;
     const line_height = c.TTF_GetFontSize(rend.body_font) + 4.0;
 
-    //const lines_on_screen = H / line_height;
+    const lines_on_screen = (H - offset_y) / line_height;
+    std.debug.print("lines_on_sceen: {d}\n", .{lines_on_screen});
 
     const static = struct {
         var buffer: [1024]u8 = undefined;
@@ -266,7 +267,7 @@ fn draw(dt: f32) void {
     const rect = c.SDL_FRect{
         .x = was_pos.x,
         .y = was_pos.y,
-        .w = 2.0,
+        .w = 2.0 * zoom_scalar,
         .h = 20.0 * zoom_scalar,
     };
 
