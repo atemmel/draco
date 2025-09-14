@@ -316,16 +316,15 @@ pub const Window = struct {
 
     pub fn down(self: *Window) void {
         const pos = self.virtualCursorPos();
+        if (pos.virtual_row + 1 >= self.scroll_offset + self.lines_on_screen) {
+            self.scroll_offset += 1;
+        }
         if (pos.virtual_row + 1 >= self.allVirtualLines().len) {
             return;
         }
         const line = self.allVirtualLines()[pos.virtual_row + 1];
         const offset = self.byteOfNthCodepointOfVirtualLine(line, self.rightmost_cursor_codepoint);
         self.cursor = @min(line.begin + offset, line.end);
-
-        if (pos.virtual_row + 1 >= self.scroll_offset + self.lines_on_screen) {
-            self.scroll_offset += 1;
-        }
     }
 
     pub fn beginningOfLine(self: *Window) void {

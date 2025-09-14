@@ -236,7 +236,7 @@ fn draw(dt: f32) void {
     const offset_y = 200.0;
     const line_height = c.TTF_GetFontSize(rend.body_font) + 4.0;
 
-    editor.window.lines_on_screen = @intFromFloat((H - offset_y) / line_height);
+    editor.window.lines_on_screen = @intFromFloat((H + offset_y) / line_height);
 
     const static = struct {
         var buffer: [1024]u8 = undefined;
