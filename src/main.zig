@@ -41,7 +41,7 @@ const FG_2 = Vec4{
 const DEFAULT_BODY_SIZE = 20.0;
 
 var window: ?*c.SDL_Window = undefined;
-pub var renderer: ?*c.SDL_Renderer = undefined;
+pub var renderer: ?*rend.c.SDL_Renderer = undefined;
 var refresh_rate_ns: u64 = undefined;
 var font_bytes: []const u8 = "";
 var font_bold_italic_bytes: []const u8 = "";
@@ -83,12 +83,8 @@ pub fn main() !void {
         return;
     };
 
-    rend.header_font = c.TTF_OpenFontIO(c.SDL_IOFromConstMem(font_bold_italic_bytes.ptr, font_bold_italic_bytes.len), false, 62.0) orelse {
-        std.debug.print("Couldn't open font: {s}\n", .{c.SDL_GetError()});
-        return;
-    };
-
-    rend.body_font = c.TTF_OpenFontIO(c.SDL_IOFromConstMem(font_bytes.ptr, font_bytes.len), false, DEFAULT_BODY_SIZE) orelse {
+    rend.header_font = rend.c.TTF_OpenFontIO(rend.c.SDL_IOFromConstMem(font_bold_italic_bytes.ptr, font_bold_italic_bytes.len), false, 62.0);
+    rend.body_font = rend.c.TTF_OpenFontIO(rend.c.SDL_IOFromConstMem(font_bytes.ptr, font_bytes.len), false, DEFAULT_BODY_SIZE) orelse {
         std.debug.print("Couldn't open font: {s}\n", .{c.SDL_GetError()});
         return;
     };
@@ -180,19 +176,19 @@ fn loop() void {
                         c.SDLK_PLUS => {
                             if (event.key.mod & c.SDL_KMOD_CTRL != 0) {
                                 zoom_scalar += 0.1;
-                                _ = c.TTF_SetFontSize(rend.body_font, DEFAULT_BODY_SIZE * zoom_scalar);
+                                _ = rend.c.TTF_SetFontSize(rend.body_font, DEFAULT_BODY_SIZE * zoom_scalar);
                             }
                         },
                         c.SDLK_MINUS => {
                             if (event.key.mod & c.SDL_KMOD_CTRL != 0) {
                                 zoom_scalar -= 0.1;
-                                _ = c.TTF_SetFontSize(rend.body_font, DEFAULT_BODY_SIZE * zoom_scalar);
+                                _ = rend.c.TTF_SetFontSize(rend.body_font, DEFAULT_BODY_SIZE * zoom_scalar);
                             }
                         },
                         c.SDLK_0 => {
                             if (event.key.mod & (c.SDL_KMOD_CTRL | c.SDL_KMOD_SHIFT) != 0) {
                                 zoom_scalar = 1.0;
-                                _ = c.TTF_SetFontSize(rend.body_font, DEFAULT_BODY_SIZE * zoom_scalar);
+                                _ = rend.c.TTF_SetFontSize(rend.body_font, DEFAULT_BODY_SIZE * zoom_scalar);
                             }
                         },
                         c.SDLK_S => {
@@ -234,7 +230,7 @@ fn draw(dt: f32) void {
     const offset_x = 100.0;
     const line_no_offset_x = offset_x - 20.0;
     const offset_y = 200.0;
-    const line_height = c.TTF_GetFontSize(rend.body_font) + 4.0;
+    const line_height = rend.c.TTF_GetFontSize(rend.body_font) + 4.0;
 
     editor.window.lines_on_screen = @intFromFloat((H + offset_y) / line_height);
 
@@ -263,15 +259,15 @@ fn draw(dt: f32) void {
         .y = math.damp(is_pos.y, was_pos.y, dampning, dt * dt_mult),
     };
 
-    const rect = c.SDL_FRect{
+    const rect = rend.c.SDL_FRect{
         .x = was_pos.x,
         .y = was_pos.y,
         .w = 2.0 * zoom_scalar,
         .h = 20.0 * zoom_scalar,
     };
 
-    _ = c.SDL_SetRenderDrawColorFloat(renderer, BG.x, BG.y, BG.z, BG.w);
-    _ = c.SDL_RenderClear(renderer);
+    _ = rend.c.SDL_SetRenderDrawColorFloat(renderer, BG.x, BG.y, BG.z, BG.w);
+    _ = rend.c.SDL_RenderClear(renderer);
     rend.drawText(rend.header_font, "Title  q8^)", FG, 100.0, 100.0);
     var n_virtual_line: i64 = 0;
     for (editor.window.allRealLines(), 0..) |_, idx| {
@@ -288,9 +284,9 @@ fn draw(dt: f32) void {
         }
     }
 
-    _ = c.SDL_SetRenderDrawColorFloat(renderer, FG.x, FG.y, FG.z, FG.w);
-    _ = c.SDL_RenderFillRect(renderer, &rect);
-    _ = c.SDL_RenderPresent(renderer);
+    _ = rend.c.SDL_SetRenderDrawColorFloat(renderer, FG.x, FG.y, FG.z, FG.w);
+    _ = rend.c.SDL_RenderFillRect(renderer, &rect);
+    _ = rend.c.SDL_RenderPresent(renderer);
 }
 
 comptime {

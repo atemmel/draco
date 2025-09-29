@@ -4,16 +4,18 @@ const math = @import("math.zig");
 
 const Vec4 = math.Vec4;
 
-const c = @cImport({
+pub const c = @cImport({
     @cInclude("SDL3/SDL.h");
     @cInclude("SDL3_ttf/SDL_ttf.h");
     @cInclude("SDL3_image/SDL_image.h");
 });
 
-pub var header_font: ?*c.TTF_Font = undefined;
-pub var body_font: ?*c.TTF_Font = undefined;
+pub const Font = c.struct_TTF_Font;
 
-pub fn drawText(font: ?*c.TTF_Font, text: []const u8, color: Vec4, x: f32, y: f32) void {
+pub var header_font: ?*Font = undefined;
+pub var body_font: ?*Font = undefined;
+
+pub fn drawText(font: ?*Font, text: []const u8, color: Vec4, x: f32, y: f32) void {
     if (text.len == 0) {
         return;
     }
@@ -42,7 +44,7 @@ pub fn str(s: []const u8) [:0]const u8 {
     };
 }
 
-pub fn strdim(font: ?*c.TTF_Font, s: []const u8) struct { w: f32, h: f32 } {
+pub fn strdim(font: ?*Font, s: []const u8) struct { w: f32, h: f32 } {
     if (s.len == 0) {
         return .{
             .w = 0,

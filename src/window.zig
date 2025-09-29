@@ -21,6 +21,7 @@ const VirtualLine = struct {
 
 pub const Window = struct {
     arena: std.heap.ArenaAllocator,
+    base_allocator: std.mem.Allocator,
     buffer: std.ArrayList(u8),
     lines: std.ArrayList(RealLine),
     virtual_lines: std.ArrayList(VirtualLine),
@@ -45,6 +46,7 @@ pub const Window = struct {
         });
         return Window{
             .arena = arena,
+            .base_allocator = base_allocator,
             .buffer = buffer,
             .lines = lines,
             .virtual_lines = virtual_lines,
@@ -52,9 +54,9 @@ pub const Window = struct {
     }
 
     pub fn deinit(self: *Window) void {
-        self.buffer.deinit();
-        self.lines.deinit();
-        self.virtual_lines.deinit();
+        self.buffer.deinit(self.base_allocator);
+        self.lines.deinit(self.base_allocator);
+        self.virtual_lines.deinit(self.base_allocator);
         self.arena.deinit();
     }
 
@@ -89,16 +91,19 @@ pub const Window = struct {
                 error.NotDir,
                 error.FileLocksNotSupported,
                 error.FileBusy,
+                error.ProcessNotFound,
+                error.PermissionDenied,
                 => {
                     std.debug.print("TODO: Show this error better: {}\n", .{e});
                 },
             }
             return;
         };
-        const writer = self.buffer.writer();
-        const reader = file.reader();
-        var fifo = std.fifo.LinearFifo(u8, .{ .Static = 8192 }).init();
-        fifo.pump(reader, writer) catch |e| {
+        var writer = std.Io.Writer.Allocating.init(self.base_allocator);
+        defer self.buffer = writer.toArrayList();
+        var buffer: [2048]u8 = undefined;
+        var reader = file.reader(&buffer);
+        _ = reader.interface.streamRemaining(&writer.writer) catch |e| {
             std.debug.print("{any}\n", .{e});
             unreachable;
         };
@@ -127,14 +132,14 @@ pub const Window = struct {
         for (self.buffer.items, 0..) |c, idx| {
             if (c == '\n') {
                 const end = idx;
-                try self.lines.append(.{
+                try self.lines.append(self.base_allocator, .{
                     .begin = begin,
                     .end = end,
                 });
                 begin = end + 1;
             }
         }
-        try self.lines.append(.{
+        try self.lines.append(self.base_allocator, .{
             .begin = begin,
             .end = self.buffer.items.len,
         });
@@ -160,7 +165,7 @@ pub const Window = struct {
                 const word = line_slice[word_begin..i];
                 const word_dim = rend.strdim(rend.body_font, word);
                 if (word_dim.w + x > max_width) {
-                    try self.virtual_lines.append(.{
+                    try self.virtual_lines.append(self.base_allocator, .{
                         .begin = virtual_line_begin,
                         .end = i - 1,
                     });
@@ -175,7 +180,7 @@ pub const Window = struct {
             const word = line_slice[word_begin..];
             const word_dim = rend.strdim(rend.body_font, word);
             if (word_dim.w + x > max_width) {
-                try self.virtual_lines.append(.{
+                try self.virtual_lines.append(self.base_allocator, .{
                     .begin = virtual_line_begin,
                     .end = i,
                 });
@@ -183,7 +188,7 @@ pub const Window = struct {
                 word_begin = i;
                 virtual_line_begin = i;
             }
-            try self.virtual_lines.append(.{
+            try self.virtual_lines.append(self.base_allocator, .{
                 .begin = virtual_line_begin,
                 .end = @min(i, line_slice.len),
             });
@@ -197,14 +202,14 @@ pub const Window = struct {
     }
 
     pub fn insert(self: *Window, what: []const u8) void {
-        self.buffer.insertSlice(self.cursor, what) catch @panic("OOM");
+        self.buffer.insertSlice(self.base_allocator, self.cursor, what) catch @panic("OOM");
         self.cursor += what.len;
         self.reindex();
         self.rightmost_cursor_codepoint = self.codepointsLeftOfCursor();
     }
 
     pub fn insertNewline(self: *Window) void {
-        self.buffer.insert(self.cursor, '\n') catch @panic("OOM");
+        self.buffer.insert(self.base_allocator, self.cursor, '\n') catch @panic("OOM");
         self.reindex();
         self.cursor += 1;
         self.down();
