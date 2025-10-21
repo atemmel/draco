@@ -213,7 +213,7 @@ pub const Window = struct {
         self.reindex();
         self.cursor += 1;
         const pos = self.virtualCursorPos();
-        if (pos.virtual_row + 1 >= self.scroll_offset + self.lines_on_screen) {
+        if (pos.virtual_row + 3 >= self.scroll_offset + self.lines_on_screen) {
             self.scroll_offset += 1;
         }
         self.rightmost_cursor_codepoint = self.codepointsLeftOfCursor();
