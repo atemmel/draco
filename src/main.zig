@@ -1,11 +1,10 @@
 const std = @import("std");
 const math = @import("math.zig");
 const rend = @import("renderer.zig");
-const Editor = @import("editor.zig").Editor;
+const Pane = @import("pane.zig").Pane;
 
 const c = @cImport({
     @cInclude("SDL3/SDL.h");
-    @cInclude("SDL3_ttf/SDL_ttf.h");
     @cInclude("SDL3_image/SDL_image.h");
 });
 
@@ -38,15 +37,11 @@ const FG_2 = Vec4{
     .w = 1.0,
 };
 
-const DEFAULT_BODY_SIZE = 20.0;
-
 var window: ?*c.SDL_Window = undefined;
 pub var renderer: ?*rend.c.SDL_Renderer = undefined;
 var scale: f32 = 1.0;
 var refresh_rate_ns: u64 = undefined;
-var font_bytes: []const u8 = "";
-var font_bold_italic_bytes: []const u8 = "";
-var editor: Editor = undefined;
+var pane: Pane = undefined;
 var arena_impl: std.heap.ArenaAllocator = undefined;
 
 fn setRefreshRate(display_fps: f32) void {
@@ -65,38 +60,19 @@ pub fn main() !void {
     }
     defer c.SDL_Quit();
 
-    if (!c.TTF_Init()) {
-        std.debug.print("TTF failed init\n", .{});
-        return;
-    }
-    defer c.TTF_Quit();
+    try rend.init();
+    defer rend.deinit();
 
     arena_impl = std.heap.ArenaAllocator.init(std.heap.c_allocator);
     defer arena_impl.deinit();
     const arena = arena_impl.allocator();
 
-    font_bold_italic_bytes = cwd().readFileAlloc(arena, "/usr/share/fonts/TTF/TinosNerdFont-BoldItalic.ttf", 10_000_000) catch |e| {
-        std.debug.print("Couldn't open font: {any}\n", .{e});
-        return;
-    };
-    //font_bytes = cwd().readFileAlloc(arena, "/usr/share/fonts/TTF/TinosNerdFont-Regular.ttf", 10_000_000) catch |e| {
-    font_bytes = cwd().readFileAlloc(arena, "/usr/share/fonts/TTF/JetBrainsMonoNerdFont-Regular.ttf", 10_000_000) catch |e| {
-        std.debug.print("Couldn't open font: {any}\n", .{e});
-        return;
-    };
-
-    rend.header_font = rend.c.TTF_OpenFontIO(rend.c.SDL_IOFromConstMem(font_bold_italic_bytes.ptr, font_bold_italic_bytes.len), false, 62.0);
-    rend.body_font = rend.c.TTF_OpenFontIO(rend.c.SDL_IOFromConstMem(font_bytes.ptr, font_bytes.len), false, DEFAULT_BODY_SIZE) orelse {
-        std.debug.print("Couldn't open font: {s}\n", .{c.SDL_GetError()});
-        return;
-    };
-
-    editor = try Editor.init(std.heap.c_allocator);
-    defer editor.deinit();
+    pane = try Pane.init(std.heap.c_allocator);
+    defer pane.deinit();
 
     const args = try std.process.argsAlloc(arena);
     if (args.len > 1) {
-        editor.window.openFile(args[1]);
+        pane.editor.openFile(args[1]);
     }
 
     const display_mode = c.SDL_GetCurrentDisplayMode(c.SDL_GetPrimaryDisplay()) orelse {
@@ -149,53 +125,53 @@ fn loop() void {
                             running = false;
                         },
                         c.SDLK_RETURN => {
-                            editor.window.insertNewline();
+                            pane.editor.insertNewline();
                         },
                         c.SDLK_BACKSPACE => {
-                            editor.window.removeLeftCursor();
+                            pane.editor.removeLeftCursor();
                         },
                         c.SDLK_DELETE => {
-                            editor.window.removeRightCursor();
+                            pane.editor.removeRightCursor();
                         },
                         c.SDLK_LEFT => {
-                            editor.window.left();
+                            pane.editor.left();
                         },
                         c.SDLK_RIGHT => {
-                            editor.window.right();
+                            pane.editor.right();
                         },
                         c.SDLK_UP => {
-                            editor.window.up();
+                            pane.editor.up();
                         },
                         c.SDLK_DOWN => {
-                            editor.window.down();
+                            pane.editor.down();
                         },
                         c.SDLK_HOME => {
-                            editor.window.beginningOfLine();
+                            pane.editor.beginningOfLine();
                         },
                         c.SDLK_END => {
-                            editor.window.endOfLine();
+                            pane.editor.endOfLine();
                         },
                         c.SDLK_PLUS => {
                             if (event.key.mod & c.SDL_KMOD_CTRL != 0) {
                                 zoom_scalar += 0.1;
-                                _ = rend.c.TTF_SetFontSize(rend.body_font, DEFAULT_BODY_SIZE * zoom_scalar);
+                                _ = rend.c.TTF_SetFontSize(rend.body_font, rend.DEFAULT_BODY_SIZE * zoom_scalar);
                             }
                         },
                         c.SDLK_MINUS => {
                             if (event.key.mod & c.SDL_KMOD_CTRL != 0) {
                                 zoom_scalar -= 0.1;
-                                _ = rend.c.TTF_SetFontSize(rend.body_font, DEFAULT_BODY_SIZE * zoom_scalar);
+                                _ = rend.c.TTF_SetFontSize(rend.body_font, rend.DEFAULT_BODY_SIZE * zoom_scalar);
                             }
                         },
                         c.SDLK_0 => {
                             if (event.key.mod & (c.SDL_KMOD_CTRL | c.SDL_KMOD_SHIFT) != 0) {
                                 zoom_scalar = 1.0;
-                                _ = rend.c.TTF_SetFontSize(rend.body_font, DEFAULT_BODY_SIZE * zoom_scalar);
+                                _ = rend.c.TTF_SetFontSize(rend.body_font, rend.DEFAULT_BODY_SIZE * zoom_scalar);
                             }
                         },
                         c.SDLK_S => {
                             if (event.key.mod & c.SDL_KMOD_CTRL != 0) {
-                                editor.window.save();
+                                pane.editor.save();
                             }
                         },
                         else => {},
@@ -209,7 +185,7 @@ fn loop() void {
                         continue;
                     }
                     did_input = true;
-                    editor.window.insert(std.mem.span(event.text.text));
+                    pane.editor.insert(std.mem.span(event.text.text));
                 },
                 else => {},
             }
@@ -234,22 +210,22 @@ fn draw(dt: f32) void {
     const offset_y = 200.0;
     const line_height = rend.c.TTF_GetFontSize(rend.body_font) + 4.0;
 
-    editor.window.lines_on_screen = @as(i32, @intFromFloat((H + offset_y) / line_height)) - 3;
+    pane.editor.lines_on_screen = @as(i32, @intFromFloat((H + offset_y) / line_height)) - 3;
 
     const static = struct {
         var buffer: [1024]u8 = undefined;
     };
 
-    const cursor_data = editor.window.cursorDrawData();
+    const cursor_data = pane.editor.cursorDrawData();
     const dim = rend.strdim(rend.body_font, cursor_data.text_left_of_cursor);
     const is_pos = Vec2{
         .x = offset_x + dim.w,
-        .y = offset_y + line_height * (cursor_data.virtual_row - @as(f32, @floatFromInt(editor.window.scroll_offset))),
+        .y = offset_y + line_height * (cursor_data.virtual_row - @as(f32, @floatFromInt(pane.editor.scroll_offset))),
     };
-    const is_scroll = @as(f32, @floatFromInt(editor.window.scroll_offset)) * line_height;
+    const is_scroll = @as(f32, @floatFromInt(pane.editor.scroll_offset)) * line_height;
 
     if (is_pos.y < offset_y) {
-        editor.window.scroll_offset -= 1;
+        pane.editor.scroll_offset -= 1;
     }
 
     if (was_pos.x == -1.0 and was_pos.y == -1.0) {
@@ -279,7 +255,7 @@ fn draw(dt: f32) void {
     _ = rend.c.SDL_RenderClear(renderer);
     rend.drawText(rend.header_font, "Title  q8^)", FG, 100.0, 100.0);
     var n_virtual_line: i64 = 0;
-    for (editor.window.allRealLines(), 0..) |_, idx| {
+    for (pane.editor.allRealLines(), 0..) |_, idx| {
         {
             const y = offset_y + @as(f32, @floatFromInt(n_virtual_line)) * line_height - was_scroll;
             const line_no_str = std.fmt.bufPrint(&static.buffer, "{}", .{idx + 1}) catch "X";
@@ -289,10 +265,10 @@ fn draw(dt: f32) void {
             }
         }
 
-        const virtual_lines = editor.window.virtualLines(idx);
+        const virtual_lines = pane.editor.virtualLines(idx);
 
         for (virtual_lines) |virtual_line| {
-            const slice = editor.window.buffer.items[virtual_line.begin..virtual_line.end];
+            const slice = pane.editor.buffer.items[virtual_line.begin..virtual_line.end];
             const y = offset_y + @as(f32, @floatFromInt(n_virtual_line)) * line_height - was_scroll;
             if (y >= offset_y) {
                 rend.drawText(rend.body_font, slice, FG, offset_x, y);
@@ -307,5 +283,5 @@ fn draw(dt: f32) void {
 }
 
 comptime {
-    std.testing.refAllDecls(@import("window.zig"));
+    std.testing.refAllDecls(@import("pane.zig"));
 }
