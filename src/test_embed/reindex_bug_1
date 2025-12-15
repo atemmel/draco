@@ -1,0 +1,4 @@
+                    link_frame.x =
+                        walking_down.x + (link_anim_step * offset_frame_x);
+
+gaming

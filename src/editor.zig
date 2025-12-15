@@ -119,6 +119,11 @@ pub const Editor = struct {
         };
     }
 
+    pub fn openSource(self: *Editor, src: []const u8) void {
+        self.buffer.clearRetainingCapacity();
+        self.buffer.appendSlice(self.base_allocator, src) catch @panic("Whelp");
+    }
+
     pub fn save(self: *Editor) void {
         const file = std.fs.cwd().createFile(self.active_file, .{}) catch |e| {
             std.debug.print("error: {}\n", .{e});
@@ -437,3 +442,41 @@ pub const Editor = struct {
         };
     }
 };
+
+const expectEqual = std.testing.expectEqual;
+
+test "indexing correctness 1" {
+    const src = @embedFile("test_embed/reindex_bug_1");
+
+    _ = rend.c.SDL_Init(rend.c.SDL_INIT_VIDEO);
+    defer rend.c.SDL_Quit();
+
+    try rend.init();
+    rend.deinit();
+
+    var editor = try Editor.init(std.testing.allocator);
+    defer editor.deinit();
+
+    editor.lines_on_screen = 38;
+    editor.openSource(src);
+    editor.reindex();
+
+    try expectEqual(5, editor.virtual_lines.items.len);
+
+    try expectEqual(VirtualLine{ .begin = 0, .end = 34 }, editor.virtual_lines.items[0]);
+
+    var cursor = editor.virtualCursorPos();
+    try expectEqual(0, cursor.virtual_row);
+
+    editor.down();
+    editor.down();
+    editor.down();
+
+    cursor = editor.virtualCursorPos();
+    try expectEqual(3, cursor.virtual_row);
+
+    editor.down();
+    editor.down();
+    cursor = editor.virtualCursorPos();
+    try expectEqual(4, cursor.virtual_row);
+}
