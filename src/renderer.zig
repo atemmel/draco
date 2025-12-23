@@ -15,10 +15,17 @@ pub const DEFAULT_BODY_SIZE = 20.0;
 
 pub const Font = c.struct_TTF_Font;
 
+pub const PROG_NAME = "draco";
+pub const W = 1200;
+pub const H = 800;
+
 pub var header_font: ?*Font = undefined;
 pub var body_font: ?*Font = undefined;
 
-pub fn init() !void {
+pub var window: ?*c.SDL_Window = undefined;
+pub var renderer: ?*c.SDL_Renderer = undefined;
+
+pub fn initFonts() !void {
     if (!c.TTF_Init()) {
         std.debug.print("TTF failed init\n", .{});
         return error.TTFInitError;
@@ -49,7 +56,23 @@ pub fn init() !void {
     };
 }
 
-pub fn deinit() void {
+pub fn initWindow() !void {
+    const display_mode = c.SDL_GetCurrentDisplayMode(c.SDL_GetPrimaryDisplay()) orelse {
+        c.SDL_Log("Could not get display mode! SDL error: %s\n", c.SDL_GetError());
+        return error.Whatever;
+    };
+    main.setRefreshRate(display_mode.*.refresh_rate);
+
+    //const win_flags = c.SDL_WINDOW_INPUT_FOCUS | c.SDL_WINDOW_HIGH_PIXEL_DENSITY | c.SDL_WINDOW_MAXIMIZED | c.SDL_WINDOW_RESIZABLE | c.SDL_WINDOW_BORDERLESS;
+    const win_flags = c.SDL_WINDOW_INPUT_FOCUS | c.SDL_WINDOW_HIGH_PIXEL_DENSITY | c.SDL_WINDOW_RESIZABLE | c.SDL_WINDOW_BORDERLESS;
+
+    if (!c.SDL_CreateWindowAndRenderer(PROG_NAME, W, H, win_flags, &window, &renderer)) {
+        std.debug.print("Couldn't create window/renderer:", .{});
+        return error.Whatever;
+    }
+}
+
+pub fn deinitFonts() void {
     c.TTF_Quit();
 }
 
@@ -59,7 +82,7 @@ pub fn drawText(font: ?*Font, text: []const u8, color: Vec4, x: f32, y: f32) voi
     }
     const surface = c.TTF_RenderText_Blended(font, text.ptr, text.len, asColor(color)) orelse return;
     defer c.SDL_DestroySurface(surface);
-    const texture = c.SDL_CreateTextureFromSurface(main.renderer, surface) orelse return;
+    const texture = c.SDL_CreateTextureFromSurface(renderer, surface) orelse return;
     defer c.SDL_DestroyTexture(texture);
 
     const dst = c.SDL_FRect{
@@ -69,7 +92,7 @@ pub fn drawText(font: ?*Font, text: []const u8, color: Vec4, x: f32, y: f32) voi
         .w = @floatFromInt(texture.*.w),
     };
 
-    _ = c.SDL_RenderTexture(main.renderer, texture, null, &dst);
+    _ = c.SDL_RenderTexture(renderer, texture, null, &dst);
 }
 
 pub fn str(s: []const u8) [:0]const u8 {

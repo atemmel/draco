@@ -18,7 +18,7 @@ pub fn build(b: *std.Build) void {
     const exe = b.addExecutable(.{
         .name = "draco",
         .root_module = exe_mod,
-        .use_llvm = optimize != .Debug,
+        .use_llvm = true or optimize != .Debug,
         .use_lld = optimize != .Debug,
     });
 

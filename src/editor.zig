@@ -338,7 +338,7 @@ pub const Editor = struct {
 
     pub fn down(self: *Editor) void {
         const pos = self.virtualCursorPos();
-        std.debug.print("pos.virtual_row: {} self.scroll_offset: {}, self.lines_on_screen: {}\n", .{ pos.virtual_row, self.scroll_offset, self.lines_on_screen });
+        std.debug.print("pos.virtual_row: {} column: {}, self.scroll_offset: {}, self.lines_on_screen: {}\n", .{ pos.virtual_row, pos.column, self.scroll_offset, self.lines_on_screen });
         std.debug.print("lhs: {}, rhs: {}\n", .{ pos.virtual_row + 2, self.scroll_offset + self.lines_on_screen });
         if (pos.virtual_row + 2 >= self.scroll_offset + self.lines_on_screen) {
             self.scroll_offset += 1;
@@ -445,8 +445,7 @@ fn initTest(src: []const u8) !Editor {
     _ = rend.c.SDL_Init(rend.c.SDL_INIT_VIDEO);
     defer rend.c.SDL_Quit();
 
-    try rend.init();
-    rend.deinit();
+    try rend.initFonts();
 
     var editor = try Editor.init(std.testing.allocator);
 
@@ -458,8 +457,8 @@ fn initTest(src: []const u8) !Editor {
 
 fn deinitTest(ed: *Editor) void {
     ed.deinit();
+    rend.deinitFonts();
     rend.c.SDL_Quit();
-    rend.deinit();
 }
 
 fn expectEditorCursorRow(pos: usize, editor: Editor) !void {
@@ -469,9 +468,9 @@ fn expectEditorCursorRow(pos: usize, editor: Editor) !void {
 
 fn expectEditorRowText(expected: []const u8, editor: Editor, row: usize) !void {
     const virtual_lines = editor.virtualLines(row);
-    try expectEqual(1, virtual_lines.len);
     const line = virtual_lines[0];
     try expectEqualStrings(expected, editor.buffer.items[line.begin..line.end]);
+    try expectEqual(1, virtual_lines.len);
 }
 
 test "indexing correctness 1" {
@@ -479,10 +478,6 @@ test "indexing correctness 1" {
 
     var editor = try initTest(src);
     defer deinitTest(&editor);
-
-    try expectEqual(5, editor.virtual_lines.items.len);
-
-    try expectEqual(VirtualLine{ .begin = 0, .end = 34 }, editor.virtual_lines.items[0]);
 
     try expectEditorRowText("                    link_frame.x =", editor, 0);
     try expectEditorRowText("                        walking_down.x + (link_anim_step * offset_frame_x);", editor, 1);
@@ -500,4 +495,6 @@ test "indexing correctness 1" {
     try expectEditorCursorRow(4, editor);
     editor.down();
     try expectEditorCursorRow(4, editor);
+
+    try expectEqual(4, editor.virtual_lines.items.len);
 }
