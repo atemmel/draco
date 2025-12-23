@@ -388,7 +388,7 @@ pub const Editor = struct {
         self.rightmost_cursor_codepoint = self.codepointsLeftOfCursor();
     }
 
-    pub fn allRealLines(self: *Editor) []const RealLine {
+    pub fn allRealLines(self: *const Editor) []const RealLine {
         return self.lines.items;
     }
 
@@ -396,17 +396,12 @@ pub const Editor = struct {
         return self.virtual_lines.items;
     }
 
-    pub fn lineSlice(self: *Editor, idx: usize) []const u8 {
-        const line = self.lines.items[idx];
-        return self.buffer.items[line.begin..line.end];
-    }
-
-    pub fn virtualLines(self: *Editor, real_line: usize) []VirtualLine {
+    pub fn virtualLines(self: *const Editor, real_line: usize) []VirtualLine {
         const virtual_line_idx = self.lines.items[real_line].virtual_lines;
         return self.virtual_lines.items[virtual_line_idx.begin..virtual_line_idx.end];
     }
 
-    pub fn virtualCursorPos(self: *Editor) struct {
+    pub fn virtualCursorPos(self: *const Editor) struct {
         virtual_row: usize,
         column: usize,
     } {
@@ -444,10 +439,9 @@ pub const Editor = struct {
 };
 
 const expectEqual = std.testing.expectEqual;
+const expectEqualStrings = std.testing.expectEqualStrings;
 
-test "indexing correctness 1" {
-    const src = @embedFile("test_embed/reindex_bug_1");
-
+fn initTest(src: []const u8) !Editor {
     _ = rend.c.SDL_Init(rend.c.SDL_INIT_VIDEO);
     defer rend.c.SDL_Quit();
 
@@ -455,28 +449,55 @@ test "indexing correctness 1" {
     rend.deinit();
 
     var editor = try Editor.init(std.testing.allocator);
-    defer editor.deinit();
 
     editor.lines_on_screen = 38;
     editor.openSource(src);
     editor.reindex();
+    return editor;
+}
+
+fn deinitTest(ed: *Editor) void {
+    ed.deinit();
+    rend.c.SDL_Quit();
+    rend.deinit();
+}
+
+fn expectEditorCursorRow(pos: usize, editor: Editor) !void {
+    const cursor = editor.virtualCursorPos();
+    try expectEqual(pos, cursor.virtual_row);
+}
+
+fn expectEditorRowText(expected: []const u8, editor: Editor, row: usize) !void {
+    const virtual_lines = editor.virtualLines(row);
+    try expectEqual(1, virtual_lines.len);
+    const line = virtual_lines[0];
+    try expectEqualStrings(expected, editor.buffer.items[line.begin..line.end]);
+}
+
+test "indexing correctness 1" {
+    const src = @embedFile("test_embed/reindex_bug_1");
+
+    var editor = try initTest(src);
+    defer deinitTest(&editor);
 
     try expectEqual(5, editor.virtual_lines.items.len);
 
     try expectEqual(VirtualLine{ .begin = 0, .end = 34 }, editor.virtual_lines.items[0]);
 
-    var cursor = editor.virtualCursorPos();
-    try expectEqual(0, cursor.virtual_row);
+    try expectEditorRowText("                    link_frame.x =", editor, 0);
+    try expectEditorRowText("                        walking_down.x + (link_anim_step * offset_frame_x);", editor, 1);
+    try expectEditorRowText("", editor, 2);
+    try expectEditorRowText("gaming", editor, 3);
 
+    try expectEditorCursorRow(0, editor);
     editor.down();
+    try expectEditorCursorRow(1, editor);
     editor.down();
+    try expectEditorCursorRow(2, editor);
     editor.down();
-
-    cursor = editor.virtualCursorPos();
-    try expectEqual(3, cursor.virtual_row);
-
+    try expectEditorCursorRow(3, editor);
     editor.down();
+    try expectEditorCursorRow(4, editor);
     editor.down();
-    cursor = editor.virtualCursorPos();
-    try expectEqual(4, cursor.virtual_row);
+    try expectEditorCursorRow(4, editor);
 }
