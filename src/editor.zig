@@ -202,10 +202,14 @@ pub const Editor = struct {
                 word_begin = i;
                 virtual_line_begin = i;
             }
-            try self.virtual_lines.append(self.base_allocator, .{
-                .begin = virtual_line_begin,
-                .end = @min(i, line_slice.len),
-            });
+
+            // only allow trailing empty virtual rows if the original row is empty
+            if (line.begin == virtual_line_begin or virtual_line_begin != i) {
+                try self.virtual_lines.append(self.base_allocator, .{
+                    .begin = virtual_line_begin,
+                    .end = @min(i, line_slice.len),
+                });
+            }
 
             const virtual_line_slice_end = self.virtual_lines.items.len;
             self.lines.items[idx].virtual_lines = .{
@@ -338,8 +342,6 @@ pub const Editor = struct {
 
     pub fn down(self: *Editor) void {
         const pos = self.virtualCursorPos();
-        std.debug.print("pos.virtual_row: {} column: {}, self.scroll_offset: {}, self.lines_on_screen: {}\n", .{ pos.virtual_row, pos.column, self.scroll_offset, self.lines_on_screen });
-        std.debug.print("lhs: {}, rhs: {}\n", .{ pos.virtual_row + 2, self.scroll_offset + self.lines_on_screen });
         if (pos.virtual_row + 2 >= self.scroll_offset + self.lines_on_screen) {
             self.scroll_offset += 1;
         }
