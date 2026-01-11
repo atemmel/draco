@@ -241,8 +241,11 @@ fn draw(dt: f32) void {
             const y = offset_y + @as(f32, @floatFromInt(n_virtual_line)) * line_height - was_scroll;
             const line_no_str = std.fmt.bufPrint(&static.buffer, "{}", .{idx + 1}) catch "X";
             const line_no_dim = rend.strdim(rend.body_font, line_no_str);
-            if (y >= offset_y) {
+            if (y + line_no_dim.h >= offset_y) {
                 rend.drawText(rend.body_font, line_no_str, FG_2, line_no_offset_x - line_no_dim.w, y);
+            } else {
+                const virt = pane.editor.virtualLines(idx);
+                std.debug.print("Skipped drawing: {} of len {}\n", .{ idx, virt.len });
             }
         }
 
@@ -251,7 +254,7 @@ fn draw(dt: f32) void {
         for (virtual_lines) |virtual_line| {
             const slice = pane.editor.buffer.items[virtual_line.begin..virtual_line.end];
             const y = offset_y + @as(f32, @floatFromInt(n_virtual_line)) * line_height - was_scroll;
-            if (y >= offset_y) {
+            if (y + line_height >= offset_y) {
                 rend.drawText(rend.body_font, slice, FG, offset_x, y);
             }
             n_virtual_line += 1;
