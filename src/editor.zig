@@ -253,15 +253,17 @@ pub const Editor = struct {
     const utf_4_mask = 0b1111_0000;
 
     fn bytesUntilNearestCodepointLeft(self: *Editor) usize {
-        assert(self.cursor > 0);
+        if (self.cursor <= 0) {
+            return 0;
+        }
         const offset: usize = if (self.cursor + 1 == self.buffer.items.len) 1 else 0;
-        if (utf_1_inv_mask & self.byte(self.cursor - 1 - offset) == 0 or self.cursor < 2) {
+        if (utf_1_inv_mask & self.cursor < 2 or self.byte(self.cursor - 1 - offset) == 0) {
             return 1;
         }
-        if (utf_2_mask & self.byte(self.cursor - 2 - offset) != 0 or self.cursor < 3) {
+        if (utf_2_mask & self.cursor < 3 or self.byte(self.cursor - 2 - offset) != 0) {
             return 2;
         }
-        if (utf_3_mask & self.byte(self.cursor - 3 - offset) != 0 or self.cursor < 4) {
+        if (utf_3_mask & self.cursor < 3 or self.byte(self.cursor - 3 - offset) != 0) {
             return 3;
         }
         return 4;
