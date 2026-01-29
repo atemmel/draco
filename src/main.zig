@@ -13,20 +13,20 @@ const Vec4 = math.Vec4;
 const cwd = std.fs.cwd;
 
 const BG = Vec4{
-    .x = 0.0,
-    .y = 0.0,
-    .z = 0.0,
+    .x = 0.137,
+    .y = 0.137,
+    .z = 0.176,
     .w = 1.0,
 };
 
-const FG = Vec4{
+pub const FG = Vec4{
     .x = 1.0,
     .y = 1.0,
     .z = 1.0,
     .w = 1.0,
 };
 
-const FG_2 = Vec4{
+pub const FG_2 = Vec4{
     .x = 0.5,
     .y = 0.5,
     .z = 0.5,
@@ -168,6 +168,9 @@ fn loop() void {
                     did_input = true;
                     pane.editor.insert(std.mem.span(event.text.text));
                 },
+                c.SDL_EVENT_MOUSE_MOTION => {
+                    did_input = true;
+                },
                 else => {},
             }
         }
@@ -186,6 +189,7 @@ fn loop() void {
 }
 
 fn draw(dt: f32) void {
+    _ = rend.c.SDL_SetWindowSize(rend.window, rend.W, rend.H);
     const offset_x = 100.0;
     const line_no_offset_x = offset_x - 20.0;
     const offset_y = 200.0;
@@ -259,6 +263,7 @@ fn draw(dt: f32) void {
     }
 
     _ = rend.c.SDL_SetRenderDrawColorFloat(rend.renderer, FG.x, FG.y, FG.z, FG.w);
+    rend.drawWindowDecoration();
     _ = rend.c.SDL_RenderFillRect(rend.renderer, &rect);
     _ = rend.c.SDL_RenderPresent(rend.renderer);
 }

@@ -3,7 +3,9 @@ const main = @import("main.zig");
 const math = @import("math.zig");
 const embed = @import("embed.zig");
 
+const Vec2 = math.Vec2;
 const Vec4 = math.Vec4;
+const Box = math.Box;
 
 pub const c = @cImport({
     @cInclude("SDL3/SDL.h");
@@ -66,14 +68,83 @@ pub fn initWindow() !void {
     //const win_flags = c.SDL_WINDOW_INPUT_FOCUS | c.SDL_WINDOW_HIGH_PIXEL_DENSITY | c.SDL_WINDOW_MAXIMIZED | c.SDL_WINDOW_RESIZABLE | c.SDL_WINDOW_BORDERLESS;
     const win_flags = c.SDL_WINDOW_INPUT_FOCUS | c.SDL_WINDOW_HIGH_PIXEL_DENSITY | c.SDL_WINDOW_RESIZABLE | c.SDL_WINDOW_BORDERLESS;
 
-    if (!c.SDL_CreateWindowAndRenderer(PROG_NAME, W, H, win_flags, &window, &renderer)) {
-        std.debug.print("Couldn't create window/renderer:", .{});
+    window = c.SDL_CreateWindow(PROG_NAME, W, H, win_flags) orelse {
+        std.debug.print("Couldn't create window", .{});
         return error.Whatever;
-    }
+    };
+    renderer = c.SDL_CreateRenderer(window, null) orelse {
+        std.debug.print("Couldn't create renderer", .{});
+        return error.Whatever;
+    };
+
+    _ = c.SDL_SetWindowSize(window, W, H);
 }
 
 pub fn deinitFonts() void {
     c.TTF_Quit();
+}
+
+pub fn setDrawColor(color: Vec4) void {
+    _ = c.SDL_SetRenderDrawColorFloat(renderer, color.x, color.y, color.z, color.w);
+}
+
+pub fn drawWindowDecoration() void {
+    const decor_padding_top = 15.0;
+    const decor_padding_right = 15.0;
+    const cross_width = 20.0;
+    const cross_height = 20.0;
+    const dim = windowSize();
+    const c_x = dim.x - decor_padding_right - cross_width;
+    const c_y = 0 + decor_padding_top;
+
+    const cross: Box = .{
+        .x = c_x,
+        .y = c_y,
+        .w = cross_width,
+        .h = cross_height,
+    };
+
+    if (mousePos().within(cross)) {
+        setDrawColor(main.FG_2);
+        std.debug.print("Within!!", .{});
+    } else {
+        setDrawColor(main.FG);
+    }
+
+    _ = c.SDL_RenderLine(
+        renderer,
+        c_x,
+        c_y,
+        c_x + cross_width,
+        c_y + cross_height,
+    );
+    _ = c.SDL_RenderLine(
+        renderer,
+        c_x + cross_width,
+        c_y,
+        c_x,
+        c_y + cross_height,
+    );
+}
+
+pub fn windowSize() Vec2 {
+    var w: c_int = 0;
+    var h: c_int = 0;
+    _ = c.SDL_GetWindowSize(window, &w, &h);
+    const scale = c.SDL_GetWindowDisplayScale(window);
+    return Vec2{
+        .x = @as(f32, @floatFromInt(w)) * scale,
+        .y = @as(f32, @floatFromInt(h)) * scale,
+    };
+}
+
+pub fn mousePos() Vec2 {
+    var pos = Vec2{
+        .x = 0,
+        .y = 0,
+    };
+    _ = c.SDL_GetMouseState(&pos.x, &pos.y);
+    return pos;
 }
 
 pub fn drawText(font: ?*Font, text: []const u8, color: Vec4, x: f32, y: f32) void {
