@@ -12,6 +12,13 @@ pub const Vec2 = struct {
     pub fn within(self: Vec2, box: Box) bool {
         return self.x >= box.x and self.x <= box.right() and self.y >= box.y and self.y <= box.bottom();
     }
+
+    pub fn mul(self: Vec2, rhs: f32) Vec2 {
+        return .{
+            .x = self.x * rhs,
+            .y = self.y * rhs,
+        };
+    }
 };
 
 pub const Vec4 = struct {

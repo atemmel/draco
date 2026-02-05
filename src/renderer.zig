@@ -2,10 +2,12 @@ const std = @import("std");
 const main = @import("main.zig");
 const math = @import("math.zig");
 const embed = @import("embed.zig");
+const gui = @import("gui.zig");
 
 const Vec2 = math.Vec2;
 const Vec4 = math.Vec4;
 const Box = math.Box;
+const Gui = gui.Gui;
 
 pub const c = @cImport({
     @cInclude("SDL3/SDL.h");
@@ -88,43 +90,31 @@ pub fn setDrawColor(color: Vec4) void {
     _ = c.SDL_SetRenderDrawColorFloat(renderer, color.x, color.y, color.z, color.w);
 }
 
-pub fn drawWindowDecoration() void {
-    const decor_padding_top = 15.0;
-    const decor_padding_right = 15.0;
-    const cross_width = 20.0;
-    const cross_height = 20.0;
-    const dim = windowSize();
-    const c_x = dim.x - decor_padding_right - cross_width;
-    const c_y = 0 + decor_padding_top;
+pub fn drawWindowDecoration(g: Gui) void {
+    for (g.window_decoration_state.operations) |op| {
+        if (op.kind == g.window_decoration_state.hovered_operation) {
+            std.debug.print("Hit!\n", .{});
+            setDrawColor(main.FG);
+        } else {
+            setDrawColor(main.FG_2);
+        }
 
-    const cross: Box = .{
-        .x = c_x,
-        .y = c_y,
-        .w = cross_width,
-        .h = cross_height,
-    };
-
-    if (mousePos().within(cross)) {
-        setDrawColor(main.FG_2);
-        std.debug.print("Within!!", .{});
-    } else {
-        setDrawColor(main.FG);
+        const b = op.box;
+        _ = c.SDL_RenderLine(
+            renderer,
+            b.x,
+            b.y,
+            b.x + b.w,
+            b.y + b.h,
+        );
+        _ = c.SDL_RenderLine(
+            renderer,
+            b.x + b.w,
+            b.y,
+            b.x,
+            b.y + b.h,
+        );
     }
-
-    _ = c.SDL_RenderLine(
-        renderer,
-        c_x,
-        c_y,
-        c_x + cross_width,
-        c_y + cross_height,
-    );
-    _ = c.SDL_RenderLine(
-        renderer,
-        c_x + cross_width,
-        c_y,
-        c_x,
-        c_y + cross_height,
-    );
 }
 
 pub fn windowSize() Vec2 {
@@ -144,7 +134,8 @@ pub fn mousePos() Vec2 {
         .y = 0,
     };
     _ = c.SDL_GetMouseState(&pos.x, &pos.y);
-    return pos;
+    const scale = c.SDL_GetWindowDisplayScale(window);
+    return pos.mul(scale);
 }
 
 pub fn drawText(font: ?*Font, text: []const u8, color: Vec4, x: f32, y: f32) void {

@@ -2,6 +2,8 @@ const std = @import("std");
 const math = @import("math.zig");
 const rend = @import("renderer.zig");
 const Pane = @import("pane.zig").Pane;
+const Gui = @import("gui.zig").Gui;
+const updateGui = @import("gui.zig").updateGui;
 
 const c = @cImport({
     @cInclude("SDL3/SDL.h");
@@ -36,6 +38,7 @@ pub const FG_2 = Vec4{
 var scale: f32 = 1.0;
 var refresh_rate_ns: u64 = undefined;
 var pane: Pane = undefined;
+var gui: Gui = undefined;
 var arena_impl: std.heap.ArenaAllocator = undefined;
 
 fn sleepNextFrame() void {
@@ -60,6 +63,8 @@ pub fn main() !void {
     arena_impl = std.heap.ArenaAllocator.init(std.heap.c_allocator);
     defer arena_impl.deinit();
     const arena = arena_impl.allocator();
+
+    gui = .{};
 
     pane = try Pane.init(std.heap.c_allocator);
     defer pane.deinit();
@@ -86,24 +91,26 @@ var zoom_scalar: f32 = 1.0;
 var ctrl_down = false;
 
 fn loop() void {
-    var running = true;
     var event: c.SDL_Event = undefined;
-    while (running) {
+    while (true) {
         const current_tick = std.time.microTimestamp();
         defer last_tick = current_tick;
         const dt = @as(f32, @floatFromInt(current_tick - last_tick)) / std.time.us_per_s;
         var did_input = false;
+
+        updateGui(&gui);
+
         while (c.SDL_PollEvent(&event)) {
             switch (event.type) {
                 c.SDL_EVENT_QUIT => {
-                    running = false;
+                    gui.running = false;
                 },
                 c.SDL_EVENT_KEY_DOWN => {
                     did_input = true;
                     ctrl_down = event.key.mod & c.SDL_KMOD_CTRL != 0;
                     switch (event.key.key) {
                         c.SDLK_ESCAPE => {
-                            running = false;
+                            gui.running = false;
                         },
                         c.SDLK_RETURN => {
                             pane.editor.insertNewline();
@@ -174,8 +181,8 @@ fn loop() void {
                 else => {},
             }
         }
-        if (!running) {
-            break;
+        if (!gui.running) {
+            break; // break before drawing next frame, close immediately
         }
 
         defer sleepNextFrame();
@@ -263,8 +270,8 @@ fn draw(dt: f32) void {
     }
 
     _ = rend.c.SDL_SetRenderDrawColorFloat(rend.renderer, FG.x, FG.y, FG.z, FG.w);
-    rend.drawWindowDecoration();
     _ = rend.c.SDL_RenderFillRect(rend.renderer, &rect);
+    rend.drawWindowDecoration(gui);
     _ = rend.c.SDL_RenderPresent(rend.renderer);
 }
 
