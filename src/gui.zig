@@ -19,7 +19,7 @@ pub const WindowDecorationState = struct {
     hovered_operation: ?WindowOperation.Kind = null,
     operations: [3]WindowOperation = [3]WindowOperation{
         .{
-            .kind = .Minimize,
+            .kind = .Close,
             .box = undefined,
         },
         .{
@@ -27,7 +27,7 @@ pub const WindowDecorationState = struct {
             .box = undefined,
         },
         .{
-            .kind = .Close,
+            .kind = .Minimize,
             .box = undefined,
         },
     },
@@ -37,10 +37,16 @@ pub const WindowDecorationState = struct {
 pub const Gui = struct {
     window_decoration_state: WindowDecorationState = .{},
     running: bool = true,
+    mouse_just_clicked: bool = false,
+    mouse_down: bool = false,
     scale: f32 = 1.0,
 };
 
 pub fn updateGui(gui: *Gui) void {
+    defer {
+        gui.mouse_just_clicked = false;
+        gui.mouse_down = false;
+    }
     const window_size = rend.windowSize();
     const mouse_pos = rend.mousePos();
 

@@ -93,27 +93,68 @@ pub fn setDrawColor(color: Vec4) void {
 pub fn drawWindowDecoration(g: Gui) void {
     for (g.window_decoration_state.operations) |op| {
         if (op.kind == g.window_decoration_state.hovered_operation) {
-            std.debug.print("Hit!\n", .{});
             setDrawColor(main.FG);
         } else {
             setDrawColor(main.FG_2);
         }
 
         const b = op.box;
-        _ = c.SDL_RenderLine(
-            renderer,
-            b.x,
-            b.y,
-            b.x + b.w,
-            b.y + b.h,
-        );
-        _ = c.SDL_RenderLine(
-            renderer,
-            b.x + b.w,
-            b.y,
-            b.x,
-            b.y + b.h,
-        );
+        switch (op.kind) {
+            .Minimize => {
+                _ = c.SDL_RenderLine(
+                    renderer,
+                    b.x + b.w,
+                    b.y + b.h * 0.15,
+                    b.x + b.w * 0.5,
+                    b.y + b.h * 0.85,
+                );
+                _ = c.SDL_RenderLine(
+                    renderer,
+                    b.x,
+                    b.y + b.h * 0.15,
+                    b.x + b.w * 0.5,
+                    b.y + b.h * 0.85,
+                );
+            },
+            .Magnify => {
+                var rect = c.SDL_FRect{
+                    .x = b.x,
+                    .y = b.y,
+                    .w = b.w,
+                    .h = b.h,
+                };
+                _ = c.SDL_RenderRect(
+                    renderer,
+                    &rect,
+                );
+                rect = c.SDL_FRect{
+                    .x = (b.x),
+                    .y = (b.y),
+                    .w = (b.w * 0.65),
+                    .h = (b.h * 0.65),
+                };
+                _ = c.SDL_RenderRect(
+                    renderer,
+                    &rect,
+                );
+            },
+            .Close => {
+                _ = c.SDL_RenderLine(
+                    renderer,
+                    b.x,
+                    b.y,
+                    b.x + b.w,
+                    b.y + b.h,
+                );
+                _ = c.SDL_RenderLine(
+                    renderer,
+                    b.x + b.w,
+                    b.y,
+                    b.x,
+                    b.y + b.h,
+                );
+            },
+        }
     }
 }
 
