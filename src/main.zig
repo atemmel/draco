@@ -2,14 +2,11 @@ const std = @import("std");
 const math = @import("math.zig");
 const rend = @import("renderer.zig");
 const Pane = @import("pane.zig").Pane;
+const ui = @import("gui.zig");
+const input = @import("input.zig");
+const sdl = @import("sdl.zig").all;
+
 const Gui = @import("gui.zig").Gui;
-const updateGui = @import("gui.zig").updateGui;
-
-const c = @cImport({
-    @cInclude("SDL3/SDL.h");
-    @cInclude("SDL3_image/SDL_image.h");
-});
-
 const Vec2 = math.Vec2;
 const Vec4 = math.Vec4;
 const cwd = std.fs.cwd;
@@ -51,11 +48,11 @@ pub fn setRefreshRate(display_fps: f32) void {
 
 pub fn main() !void {
     //Initialize SDL
-    if (!c.SDL_Init(c.SDL_INIT_VIDEO)) {
-        c.SDL_Log("SDL could not initialize! SDL error: %s\n", c.SDL_GetError());
+    if (!sdl.SDL_Init(sdl.SDL_INIT_VIDEO)) {
+        sdl.SDL_Log("SDL could not initialize! SDL error: %s\n", sdl.SDL_GetError());
         return;
     }
-    defer c.SDL_Quit();
+    defer sdl.SDL_Quit();
 
     try rend.initFonts();
     defer rend.deinitFonts();
@@ -75,7 +72,7 @@ pub fn main() !void {
     }
 
     try rend.initWindow();
-    _ = rend.c.SDL_StartTextInput(rend.window);
+    _ = sdl.SDL_StartTextInput(rend.window);
 
     loop();
 }
@@ -91,103 +88,120 @@ var zoom_scalar: f32 = 1.0;
 var ctrl_down = false;
 
 fn loop() void {
-    var event: c.SDL_Event = undefined;
+    var event: sdl.SDL_Event = undefined;
     while (true) {
         const current_tick = std.time.microTimestamp();
         defer last_tick = current_tick;
         const dt = @as(f32, @floatFromInt(current_tick - last_tick)) / std.time.us_per_s;
         var did_input = false;
 
-        updateGui(&gui);
-
-        while (c.SDL_PollEvent(&event)) {
+        while (sdl.SDL_PollEvent(&event)) {
+            input.registerEvent(event);
             switch (event.type) {
-                c.SDL_EVENT_QUIT => {
+                sdl.SDL_EVENT_QUIT => {
                     gui.running = false;
                 },
-                c.SDL_EVENT_KEY_DOWN => {
+                sdl.SDL_EVENT_KEY_DOWN => {
                     did_input = true;
-                    ctrl_down = event.key.mod & c.SDL_KMOD_CTRL != 0;
+                    ctrl_down = event.key.mod & sdl.SDL_KMOD_CTRL != 0;
                     switch (event.key.key) {
-                        c.SDLK_ESCAPE => {
+                        sdl.SDLK_ESCAPE => {
                             gui.running = false;
                         },
-                        c.SDLK_RETURN => {
+                        sdl.SDLK_RETURN => {
                             pane.editor.insertNewline();
                         },
-                        c.SDLK_BACKSPACE => {
+                        sdl.SDLK_BACKSPACE => {
                             pane.editor.removeLeftCursor();
                         },
-                        c.SDLK_DELETE => {
+                        sdl.SDLK_DELETE => {
                             pane.editor.removeRightCursor();
                         },
-                        c.SDLK_LEFT => {
+                        sdl.SDLK_LEFT => {
                             pane.editor.left();
                         },
-                        c.SDLK_RIGHT => {
+                        sdl.SDLK_RIGHT => {
                             pane.editor.right();
                         },
-                        c.SDLK_UP => {
+                        sdl.SDLK_UP => {
                             pane.editor.up();
                         },
-                        c.SDLK_DOWN => {
+                        sdl.SDLK_DOWN => {
                             pane.editor.down();
                         },
-                        c.SDLK_HOME => {
+                        sdl.SDLK_HOME => {
                             pane.editor.beginningOfLine();
                         },
-                        c.SDLK_END => {
-                            pane.editor.endOfLine();
+                        sdl.SDLK_END => {
+                            //pane.editor.endOfLine();
+                            _ = sdl.SDL_MaximizeWindow(rend.window);
                         },
-                        c.SDLK_PLUS => {
-                            if (event.key.mod & c.SDL_KMOD_CTRL != 0) {
+                        sdl.SDLK_PLUS => {
+                            if (event.key.mod & sdl.SDL_KMOD_CTRL != 0) {
                                 zoom_scalar += 0.1;
-                                _ = rend.c.TTF_SetFontSize(rend.body_font, rend.DEFAULT_BODY_SIZE * zoom_scalar);
+                                _ = sdl.TTF_SetFontSize(rend.body_font, rend.DEFAULT_BODY_SIZE * zoom_scalar);
                             }
                         },
-                        c.SDLK_MINUS => {
-                            if (event.key.mod & c.SDL_KMOD_CTRL != 0) {
+                        sdl.SDLK_MINUS => {
+                            if (event.key.mod & sdl.SDL_KMOD_CTRL != 0) {
                                 zoom_scalar -= 0.1;
-                                _ = rend.c.TTF_SetFontSize(rend.body_font, rend.DEFAULT_BODY_SIZE * zoom_scalar);
+                                _ = sdl.TTF_SetFontSize(rend.body_font, rend.DEFAULT_BODY_SIZE * zoom_scalar);
                             }
                         },
-                        c.SDLK_0 => {
-                            if (event.key.mod & (c.SDL_KMOD_CTRL | c.SDL_KMOD_SHIFT) != 0) {
+                        sdl.SDLK_0 => {
+                            if (event.key.mod & (sdl.SDL_KMOD_CTRL | sdl.SDL_KMOD_SHIFT) != 0) {
                                 zoom_scalar = 1.0;
-                                _ = rend.c.TTF_SetFontSize(rend.body_font, rend.DEFAULT_BODY_SIZE * zoom_scalar);
+                                _ = sdl.TTF_SetFontSize(rend.body_font, rend.DEFAULT_BODY_SIZE * zoom_scalar);
                             }
                         },
-                        c.SDLK_S => {
-                            if (event.key.mod & c.SDL_KMOD_CTRL != 0) {
+                        sdl.SDLK_S => {
+                            if (event.key.mod & sdl.SDL_KMOD_CTRL != 0) {
                                 pane.editor.save();
                             }
                         },
                         else => {},
                     }
                 },
-                c.SDL_EVENT_KEY_UP => {
-                    ctrl_down = event.key.mod & c.SDL_KMOD_CTRL != 0;
+                sdl.SDL_EVENT_KEY_UP => {
+                    ctrl_down = event.key.mod & sdl.SDL_KMOD_CTRL != 0;
                 },
-                c.SDL_EVENT_TEXT_INPUT => {
+                sdl.SDL_EVENT_TEXT_INPUT => {
                     if (ctrl_down) {
                         continue;
                     }
                     did_input = true;
                     pane.editor.insert(std.mem.span(event.text.text));
                 },
-                c.SDL_EVENT_MOUSE_MOTION => {
+                sdl.SDL_EVENT_MOUSE_MOTION => {
                     did_input = true;
                 },
                 else => {},
             }
+
+            switch (ui.update(&gui)) {
+                .Close => return,
+                .Maximize => {
+                    if (sdl.SDL_GetWindowFlags(rend.window) & sdl.SDL_WINDOW_MAXIMIZED == 0) {
+                        _ = sdl.SDL_MaximizeWindow(rend.window);
+                    } else {
+                        _ = sdl.SDL_RestoreWindow(rend.window);
+                    }
+                },
+                .Minimize => {
+                    _ = sdl.SDL_MinimizeWindow(rend.window);
+                },
+                .Nothing => {},
+            }
         }
+
         if (!gui.running) {
             break; // break before drawing next frame, close immediately
         }
 
+        input.newEventTick();
         defer sleepNextFrame();
 
-        if (!animating and !did_input and last_tick > 0) {
+        if (!animating and !did_input and last_tick > 0 and !input.state.window_changed_somehow) {
             continue;
         }
 
@@ -196,11 +210,10 @@ fn loop() void {
 }
 
 fn draw(dt: f32) void {
-    _ = rend.c.SDL_SetWindowSize(rend.window, rend.W, rend.H);
     const offset_x = 100.0;
     const line_no_offset_x = offset_x - 20.0;
     const offset_y = 200.0;
-    const line_height = rend.c.TTF_GetFontSize(rend.body_font) + 4.0;
+    const line_height = sdl.TTF_GetFontSize(rend.body_font) + 4.0;
 
     pane.editor.lines_on_screen = @as(i32, @intFromFloat((rend.H + offset_y) / line_height)) - 3;
 
@@ -236,15 +249,15 @@ fn draw(dt: f32) void {
 
     was_scroll = math.damp(is_scroll, was_scroll, dampning, dt * dt_mult);
 
-    const rect = rend.c.SDL_FRect{
+    const rect = sdl.SDL_FRect{
         .x = was_pos.x,
         .y = was_pos.y,
         .w = 2.0 * zoom_scalar,
         .h = 24.0 * zoom_scalar,
     };
 
-    _ = rend.c.SDL_SetRenderDrawColorFloat(rend.renderer, BG.x, BG.y, BG.z, BG.w);
-    _ = rend.c.SDL_RenderClear(rend.renderer);
+    _ = sdl.SDL_SetRenderDrawColorFloat(rend.renderer, BG.x, BG.y, BG.z, BG.w);
+    _ = sdl.SDL_RenderClear(rend.renderer);
     rend.drawText(rend.header_font, "Title  q8^)", FG, 100.0, 100.0);
     var n_virtual_line: i64 = 0;
     for (pane.editor.allRealLines(), 0..) |_, idx| {
@@ -252,7 +265,7 @@ fn draw(dt: f32) void {
             const y = offset_y + @as(f32, @floatFromInt(n_virtual_line)) * line_height - was_scroll;
             const line_no_str = std.fmt.bufPrint(&static.buffer, "{}", .{idx + 1}) catch "X";
             const line_no_dim = rend.strdim(rend.body_font, line_no_str);
-            if (y >= offset_y) {
+            if (@ceil(y) >= offset_y) {
                 rend.drawText(rend.body_font, line_no_str, FG_2, line_no_offset_x - line_no_dim.w, y);
             }
         }
@@ -262,17 +275,17 @@ fn draw(dt: f32) void {
         for (virtual_lines) |virtual_line| {
             const slice = pane.editor.buffer.items[virtual_line.begin..virtual_line.end];
             const y = offset_y + @as(f32, @floatFromInt(n_virtual_line)) * line_height - was_scroll;
-            if (y >= offset_y) {
+            if (@ceil(y) >= offset_y) {
                 rend.drawText(rend.body_font, slice, FG, offset_x, y);
             }
             n_virtual_line += 1;
         }
     }
 
-    _ = rend.c.SDL_SetRenderDrawColorFloat(rend.renderer, FG.x, FG.y, FG.z, FG.w);
-    _ = rend.c.SDL_RenderFillRect(rend.renderer, &rect);
+    _ = sdl.SDL_SetRenderDrawColorFloat(rend.renderer, FG.x, FG.y, FG.z, FG.w);
+    _ = sdl.SDL_RenderFillRect(rend.renderer, &rect);
     rend.drawWindowDecoration(gui);
-    _ = rend.c.SDL_RenderPresent(rend.renderer);
+    _ = sdl.SDL_RenderPresent(rend.renderer);
 }
 
 comptime {
