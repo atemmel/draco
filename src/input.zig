@@ -1,8 +1,8 @@
 const std = @import("std");
-const sdl = @import("sdl.zig").all;
+const c = @import("c.zig").c;
 
 pub const KeyInput = struct {
-    key: sdl.SDL_Keycode,
+    key: c.SDL_Keycode,
     mod: packed struct {
         ctrl: bool,
         alt: bool,
@@ -12,7 +12,7 @@ pub const KeyInput = struct {
 };
 
 pub const WriteInput = struct {
-    key: sdl.SDL_Keycode,
+    key: c.SDL_Keycode,
     mod: packed struct {
         ctrl: bool,
         alt: bool,
@@ -37,15 +37,15 @@ pub fn newEventTick() void {
     state.window_changed_somehow = false;
 }
 
-pub fn registerEvent(event: sdl.SDL_Event) void {
+pub fn registerEvent(event: c.SDL_Event) void {
     switch (event.type) {
-        sdl.SDL_EVENT_WINDOW_RESIZED, sdl.SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED => {
+        c.SDL_EVENT_WINDOW_RESIZED, c.SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED => {
             state.window_changed_somehow = true;
         },
-        sdl.SDL_EVENT_MOUSE_BUTTON_DOWN => {
+        c.SDL_EVENT_MOUSE_BUTTON_DOWN => {
             state.mouse_down = true;
         },
-        sdl.SDL_EVENT_MOUSE_BUTTON_UP => {
+        c.SDL_EVENT_MOUSE_BUTTON_UP => {
             state.mouse_down = false;
             state.mouse_just_up = true;
         },
