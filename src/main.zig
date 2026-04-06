@@ -5,6 +5,7 @@ const Pane = @import("pane.zig").Pane;
 const ui = @import("gui.zig");
 const input = @import("input.zig");
 const c = @import("c.zig").c;
+const font = @import("font.zig");
 
 const Gui = @import("gui.zig").Gui;
 const Vec2 = math.Vec2;
@@ -71,7 +72,7 @@ pub fn main() !void {
         pane.editor.openFile(args[1]);
     }
 
-    try rend.initWindow();
+    try rend.initWindow(std.heap.c_allocator);
     _ = c.SDL_StartTextInput(rend.window);
 
     loop();

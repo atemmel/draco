@@ -5,6 +5,7 @@ const embed = @import("embed.zig");
 const gui = @import("gui.zig");
 const c = @import("c.zig").c;
 const input = @import("input.zig");
+const font = @import("font.zig");
 
 const Vec2 = math.Vec2;
 const Vec4 = math.Vec4;
@@ -56,7 +57,7 @@ pub fn initFonts() !void {
     };
 }
 
-pub fn initWindow() !void {
+pub fn initWindow(allocator: std.mem.Allocator) !void {
     const display_mode = c.SDL_GetCurrentDisplayMode(c.SDL_GetPrimaryDisplay()) orelse {
         c.SDL_Log("Could not get display mode! SDL error: %s\n", c.SDL_GetError());
         return error.Whatever;
@@ -77,6 +78,9 @@ pub fn initWindow() !void {
 
     _ = c.SDL_SetWindowSize(window, W, H);
     _ = c.SDL_SetWindowHitTest(window, &hitTestCallback, null);
+
+    try font.initFonts();
+    _ = try font.newFont(allocator, renderer.?, embed.font_monospace_bytes, DEFAULT_BODY_SIZE);
 }
 
 fn hitTestCallback(w: ?*c.SDL_Window, area: [*c]const c.SDL_Point, _: ?*anyopaque) callconv(.c) c.SDL_HitTestResult {
@@ -208,11 +212,11 @@ pub fn mousePos() Vec2 {
     return pos.mul(scale);
 }
 
-pub fn drawText(font: ?*Font, text: []const u8, color: Vec4, x: f32, y: f32) void {
+pub fn drawText(font_to_use: ?*Font, text: []const u8, color: Vec4, x: f32, y: f32) void {
     if (text.len == 0) {
         return;
     }
-    const surface = c.TTF_RenderText_Blended(font, text.ptr, text.len, asColor(color)) orelse return;
+    const surface = c.TTF_RenderText_Blended(font_to_use, text.ptr, text.len, asColor(color)) orelse return;
     defer c.SDL_DestroySurface(surface);
     const texture = c.SDL_CreateTextureFromSurface(renderer, surface) orelse return;
     defer c.SDL_DestroyTexture(texture);
@@ -237,7 +241,7 @@ pub fn str(s: []const u8) [:0]const u8 {
     };
 }
 
-pub fn strdim(font: ?*Font, s: []const u8) struct { w: f32, h: f32 } {
+pub fn strdim(font_to_use: ?*Font, s: []const u8) struct { w: f32, h: f32 } {
     if (s.len == 0) {
         return .{
             .w = 0,
@@ -246,7 +250,7 @@ pub fn strdim(font: ?*Font, s: []const u8) struct { w: f32, h: f32 } {
     }
     var w: c_int = 0;
     var h: c_int = 0;
-    _ = c.TTF_GetStringSize(font, s.ptr, s.len, &w, &h);
+    _ = c.TTF_GetStringSize(font_to_use, s.ptr, s.len, &w, &h);
     return .{
         .w = @floatFromInt(w),
         .h = @floatFromInt(h),

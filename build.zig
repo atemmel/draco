@@ -22,7 +22,8 @@ pub fn build(b: *std.Build) void {
         .use_lld = optimize != .Debug,
     });
 
-    //exe.addIncludePath(.{ .cwd_relative = "/usr/include" });
+    exe.addIncludePath(.{ .cwd_relative = "/usr/include/freetype2" });
+    exe.addIncludePath(.{ .cwd_relative = "src/" });
     exe.addLibraryPath(.{ .cwd_relative = "/usr/lib" });
     exe.linkSystemLibrary("SDL3");
     exe.linkSystemLibrary("SDL3_ttf");
