@@ -1,0 +1,24 @@
+#!/bin/cherry
+
+import fs
+
+output := draco
+
+say starting to compile
+g++ ./src/main.cpp -o $output -lSDL3 -Iinclude
+say done
+
+#TODO: this currently fails
+#if (and (len $argv) != 0 (get $argv 0) == run) {
+
+if (len $argv) != 0 {
+    if (get $argv 0) == run {
+        say controlling wether binary exists
+        if (fs'exists $output) {
+            say running binary
+            #TODO: this currently fails
+            #"./{output}"
+            ./draco
+        }
+    }
+}
