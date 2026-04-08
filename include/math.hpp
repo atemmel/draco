@@ -10,6 +10,10 @@ struct Rect {
     operator SDL_Rect() {
         return {x, y, w, h};
     }
+
+    operator SDL_FRect() {
+        return {f32(x), f32(y), f32(w), f32(h)};
+    }
 };
 
 struct Point {

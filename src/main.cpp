@@ -1,6 +1,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_init.h>
+#include <SDL3/SDL_render.h>
 
 #include <cstring>
 
@@ -57,11 +58,14 @@ auto loop() -> void {
 
         if (!running) break;
 
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255);
         SDL_RenderClear(renderer);
 
         // Draw_Text(renderer, "gaming", strlen("gaming"), 100, 100, true);
         // Draw_Text(renderer, "gaming", strlen("gaming"), 100, 200, false);
+
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+        Draw_Font_Atlas(monospace_font, {0, 0});
 
         // draw everything to screen
         SDL_RenderPresent(renderer);

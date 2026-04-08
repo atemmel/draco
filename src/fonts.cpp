@@ -1,6 +1,7 @@
 #include "fonts.hpp"
 
 #include <SDL3/SDL_iostream.h>
+#include <SDL3/SDL_oldnames.h>
 #include <SDL3/SDL_pixels.h>
 #include <SDL3/SDL_surface.h>
 #include <SDL3_ttf/SDL_ttf.h>
@@ -11,6 +12,7 @@
 #include "defer.hpp"
 #include "freetype.h"
 #include "freetype/freetype.h"
+#include "math.hpp"
 #include "mem.hpp"
 #include "renderer.hpp"
 #include "types.hpp"
@@ -37,24 +39,20 @@ const u8 regular_bold_italic_font_bytes[] = {
 #embed "../embed/TinosNerdFont-BoldItalic.ttf"
 };
 
-static TTF_Font* monospace_font;
-static TTF_Font* regular_font;
 static FT_Library ft_library;
+
+Font* monospace_font;
 
 auto Init_Fonts() -> void {
     TTF_Init();
     assert(!FT_Init_FreeType(&ft_library));
 
-    monospace_font = TTF_OpenFontIO(SDL_IOFromConstMem(monospace_font_bytes, sizeof(monospace_font_bytes)), false, 20.0);
-
-    regular_font = TTF_OpenFontIO(SDL_IOFromConstMem(regular_bold_italic_font_bytes, sizeof(regular_bold_italic_font_bytes)), false, 62.0);
-
-    auto font = Create_Font_From_Bytes(default_allocator, renderer, monospace_font_bytes, sizeof(monospace_font_bytes), 20);
+    monospace_font = Create_Font_From_Bytes(default_allocator, renderer, monospace_font_bytes, sizeof(monospace_font_bytes), 20);
+    assert(monospace_font);
 }
 
 auto Destroy_Fonts() -> void {
-    TTF_CloseFont(monospace_font);
-    TTF_CloseFont(regular_font);
+    // TODO: clean up monospace_font
     TTF_Quit();
 }
 
@@ -86,8 +84,9 @@ auto Create_Font_From_Bytes(Allocator allocator, Renderer renderer, const u8* by
     return font;
 };
 
+/*
 auto Draw_Text(const Font* font, const char* text, u32 length, f32 x, f32 y) -> void {
-    auto surface = TTF_RenderText_Blended(monospace_font, text, length, SDL_Color{255, 255, 255, 255});
+    auto surface = TTF_RenderText_Blended(font, text, length, SDL_Color{255, 255, 255, 255});
     defer(SDL_DestroySurface(surface));
     auto texture = SDL_CreateTextureFromSurface(renderer, surface);
     defer(SDL_DestroyTexture(texture));
@@ -101,6 +100,7 @@ auto Draw_Text(const Font* font, const char* text, u32 length, f32 x, f32 y) -> 
 
     SDL_RenderTexture(renderer, texture, nullptr, &dst);
 }
+*/
 
 auto Set_Glyph_Metrics_Of_Font(Font* font, usize index, i32 x, i32 y) -> void {
     font->glyph_metrics[index].rect.x    = x * font->font_metrics.ptsize;
@@ -151,17 +151,27 @@ static auto Render_Font_To_Surface(Font* font, Allocator allocator) -> SDL_Surfa
 
         Set_Glyph_Metrics_Of_Font(font, index, xpos, ypos);
 
-        int xreal = xpos * font->font_metrics.ptsize;
-        int yreal = ypos * font->font_metrics.ptsize;
-        for (int y = 0; y < bitmap->rows; y++) {
-            for (int x = 0; x < bitmap->width; x++) {
-                int index     = (yreal + y) * surface->w + xreal + x;
-                Uint32* pixel = &((Uint32*)surface->pixels)[index];
-                Uint8 alpha   = bitmap->buffer[y * bitmap->pitch + x];
-                *pixel        = SDL_MapRGBA(SDL_GetPixelFormatDetails(surface->format), null, 255, 255, 255, alpha);
+        i32 xreal = xpos * font->font_metrics.ptsize;
+        i32 yreal = ypos * font->font_metrics.ptsize;
+        for (i32 y = 0; y < bitmap->rows; y++) {
+            for (i32 x = 0; x < bitmap->width; x++) {
+                i32 index  = (yreal + y) * surface->w + xreal + x;
+                u32* pixel = &((u32*)surface->pixels)[index];
+                u8 alpha   = bitmap->buffer[y * bitmap->pitch + x];
+                *pixel     = SDL_MapRGBA(SDL_GetPixelFormatDetails(surface->format), null, 255, 255, 255, alpha);
             }
         }
     }
 
     return surface;
+}
+
+auto Draw_Font_Atlas(const Font* font, Point pt) -> void {
+    auto dest_rect = SDL_FRect{
+        f32(pt.x),
+        f32(pt.y),
+        f32(font->glyphs_of_atlas_side_count * font->font_metrics.ptsize),
+        f32(font->glyphs_of_atlas_side_count * font->font_metrics.ptsize),
+    };
+    SDL_RenderTexture(font->renderer, font->atlas, null, &dest_rect);
 }
