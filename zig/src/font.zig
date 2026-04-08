@@ -113,7 +113,7 @@ pub fn renderFontToSurface(font: *Font) !*c.SDL_Surface {
                 const pixel = &@as([*]c_uint, @ptrCast(@alignCast(surface.*.pixels)))[surface_index];
                 const alpha = bitmap.buffer[cast(usize, y * bitmap.pitch + x)];
                 std.debug.print("surface.*.format: {any}\n", .{surface.*.pixels});
-                pixel.* = c.SDL_MapRGBA(surface.*.format, null, 255, 255, 255, alpha);
+                pixel.* = c.SDL_MapRGBA(c.SDL_GetPixelFormatDetails(surface.*.format), null, 255, 255, 255, alpha);
             }
         }
     }

@@ -1,7 +1,15 @@
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_events.h>
 #include <SDL3/SDL_init.h>
 
+#include <cstring>
+
 #include "defer.hpp"
+#include "fonts.hpp"
+#include "mem.hpp"
+#include "renderer.hpp"
+
+auto loop() -> void;
 
 auto main() -> int {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
@@ -10,17 +18,12 @@ auto main() -> int {
     }
     defer(SDL_Quit());
 
-    auto window = SDL_CreateWindow("HelloWorld SDL3", 640, 480, 0);
-    if (!window) {
-        SDL_Log("SDL_CreateWindow() Error: %s", SDL_GetError());
-        return -1;
-    }
+    auto allocator = default_allocator;
 
-    auto renderer = SDL_CreateRenderer(window, NULL);
-    if (!renderer) {
-        SDL_Log("SDL_CreateRenderer() Error: %s", SDL_GetError());
-        return -1;
-    }
+    Init_Renderer();
+    defer(Destroy_Renderer());
+    Init_Fonts();
+    defer(Destroy_Fonts());
 
     SDL_Event event;
     bool running = true;
@@ -29,51 +32,40 @@ auto main() -> int {
     mouseRect.x = mouseRect.y = -1000;  // ensure it's offscreen at startup
     mouseRect.w = mouseRect.h = 50;
 
-    // main loop
-    while (running) {
-        // go through all pending events until there are no more
+    loop();
+    return 0;
+}
+
+auto loop() -> void {
+    auto running = true;
+    SDL_Event event;
+    for (;;) {
         while (SDL_PollEvent(&event)) {
             switch (event.type) {
-                case SDL_EVENT_QUIT:      // triggered on window close
+                case SDL_EVENT_QUIT:
                     running = false;
                     break;
-                case SDL_EVENT_KEY_DOWN:  // triggered when user presses ESC key
-                    if (event.key.key == SDLK_ESCAPE) {
-                        running = false;
+                case SDL_EVENT_KEY_DOWN:
+                    switch (event.key.key) {
+                        case SDLK_ESCAPE:
+                            running = false;
+                            break;
                     }
-                case SDL_EVENT_MOUSE_MOTION:
-                    mouseRect.x = event.motion.x - (mouseRect.w / 2.0f);
-                    mouseRect.y = event.motion.y - (mouseRect.h / 2.0f);
                     break;
             }
         }
 
-        // sine wave with 3 second period
-        float sineWave = SDL_sinf((((float)(SDL_GetTicks() % 3000)) / 3000.0f) *
-                                  2.0f * SDL_PI_F);
-        // multiply amplitude by 127 and shift by +127 to get 0..254 color range
-        Uint8 r = (Uint8)(sineWave * 127.0f) + 127;
-        // set shade of red
-        SDL_SetRenderDrawColor(renderer, r, 0, 0,
-                               255);  // for SDL_RenderClear()
+        if (!running) break;
 
-        // clear the window to red fade color
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
 
-        // set draw color to white
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255,
-                               255);  // for SDL_RenderFillRect()
-
-        // draw mouse rectangle
-        SDL_RenderFillRect(renderer, &mouseRect);
+        // Draw_Text(renderer, "gaming", strlen("gaming"), 100, 100, true);
+        // Draw_Text(renderer, "gaming", strlen("gaming"), 100, 200, false);
 
         // draw everything to screen
         SDL_RenderPresent(renderer);
+
+        Sleep_Until_Next_Frame();
     }
-
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
-
-    return 0;
-}
+};

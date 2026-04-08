@@ -2,16 +2,24 @@
 
 import fs
 
-output := draco
+output   := draco
+includes := [ -Iinclude -I/usr/include/freetype2 ]
+libs     := [ -lSDL3 -lSDL3_ttf -lfreetype ]
 
-g++ ./src/main.cpp -o $output -lSDL3 -Iinclude
+g++ src/*.cpp -o $output $libs $includes
 
 if (len $argv) == 0 {
     exit 0
 }
 
-if (get $argv 0) == run && (fs'exists $output) {
+arg := (get $argv 0)
+
+if $arg == run && (fs'exists $output) {
     #TODO: this currently fails
     #"./{output}"
     ./draco
+} else if $arg == valgrind {
+  valgrind "./{output}"
+} else if $arg == leaks {
+  valgrind "--leak-check=full" "./{output}"
 }
