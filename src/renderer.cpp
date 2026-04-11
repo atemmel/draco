@@ -5,6 +5,7 @@
 #include <unistd.h>
 
 #include <cassert>
+#include <cstdio>
 
 #include "types.hpp"
 
@@ -31,7 +32,8 @@ auto Init_Renderer() -> void {
 
     window = SDL_CreateWindow(PROG_NAME, W, H, window_flags);
     assert(window);
-    renderer = SDL_CreateRenderer(window, null);
+
+    renderer = SDL_CreateRenderer(window, "vulkan");
     assert(renderer);
 
     // TODO
@@ -43,6 +45,25 @@ auto Destroy_Renderer() -> void {
     if (window) SDL_DestroyWindow(window);
     renderer = null;
     window   = null;
+}
+
+auto Dump_Available_Drivers() -> void {
+    printf("Available drivers:\n");
+
+    i32 i            = 0;
+    const char* driv = SDL_GetRenderDriver(0);
+    for (; driv; i++, driv = SDL_GetRenderDriver(i)) {
+        printf("%s\n", driv);
+    }
+}
+
+auto Renderer_Set_Color(Vec4 color) -> void {
+    SDL_SetRenderDrawColorFloat(renderer, color.r, color.g, color.b, color.a);
+}
+
+auto Renderer_Clear(Vec4 color) -> void {
+    Renderer_Set_Color(color);
+    SDL_RenderClear(renderer);
 }
 
 auto Sleep_Until_Next_Frame() -> void {

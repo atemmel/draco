@@ -3,13 +3,14 @@
 #include "math.hpp"
 #include "mem.hpp"
 #include "renderer.hpp"
+#include "strings.hpp"
 #include "types.hpp"
 
 struct Font;
 
 struct Glyph_Metric {
     Rect rect;
-    Point bearing;
+    Vec2 bearing;
     i32 advance;
 };
 
@@ -22,13 +23,20 @@ struct Font_Metrics {
 };
 
 extern Font* monospace_font;
+// extern Font* monospace2_font;
+// extern Font* monospace3_font;
+// extern Font* monospace4_font;
 
-auto Init_Fonts() -> void;
+auto Init_Fonts(Allocator allocator) -> void;
 
 auto Destroy_Fonts() -> void;
 
 auto Create_Font_From_Bytes(Allocator allocator, Renderer renderer, const u8* bytes, usize byte_count, u32 font_size) -> Font*;
 
-auto Draw_Text(const Font* font, const char* text, u32 length, f32 x, f32 y) -> void;
+auto Destroy_Font(Font* font) -> void;
 
-auto Draw_Font_Atlas(const Font* font, Point pt) -> void;
+auto Render_Text(const Font* font, String text, f32 x, f32 y) -> void;
+
+auto Render_Text(const Font* font, const u8* text, u32 length, f32 x, f32 y) -> void;
+
+auto Render_Font_Atlas(const Font* font, Vec2 pt) -> void;

@@ -3,11 +3,13 @@
 #include <SDL3/SDL_iostream.h>
 #include <SDL3/SDL_oldnames.h>
 #include <SDL3/SDL_pixels.h>
+#include <SDL3/SDL_render.h>
 #include <SDL3/SDL_surface.h>
-#include <SDL3_ttf/SDL_ttf.h>
 #include <math.h>
 
 #include <cassert>
+#include <climits>
+#include <cmath>
 
 #include "defer.hpp"
 #include "freetype.h"
@@ -16,8 +18,9 @@
 #include "mem.hpp"
 #include "renderer.hpp"
 #include "types.hpp"
+#include "utf8.hpp"
 
-static auto Render_Font_To_Surface(Font* font, Allocator allocator) -> SDL_Surface*;
+static auto Render_Font_To_Surface(Font* font) -> SDL_Surface*;
 
 struct Font {
     Renderer renderer;
@@ -32,50 +35,73 @@ struct Font {
 };
 
 const u8 monospace_font_bytes[] = {
-#embed "../embed/JetBrainsMonoNerdFont-Regular.ttf"
+#embed "../embed/IBMPlexMono-Regular.ttf"
+};
+
+/*
+const u8 monospace2_font_bytes[] = {
+#embed "../embed/IosevkaNerdFontMono-Regular.ttf"
+};
+
+const u8 monospace3_font_bytes[] = {
+#embed "../embed/GeistMono-Regular.ttf"
+};
+
+const u8 monospace4_font_bytes[] = {
+#embed "../embed/IBMPlexMono-Regular.ttf"
 };
 
 const u8 regular_bold_italic_font_bytes[] = {
 #embed "../embed/TinosNerdFont-BoldItalic.ttf"
 };
+*/
 
 static FT_Library ft_library;
 
 Font* monospace_font;
+/*
+Font* monospace2_font;
+Font* monospace3_font;
+Font* monospace4_font;
+*/
 
-auto Init_Fonts() -> void {
-    TTF_Init();
+auto Init_Fonts(Allocator allocator) -> void {
     assert(!FT_Init_FreeType(&ft_library));
 
-    monospace_font = Create_Font_From_Bytes(default_allocator, renderer, monospace_font_bytes, sizeof(monospace_font_bytes), 20);
+    monospace_font = Create_Font_From_Bytes(allocator, renderer, monospace_font_bytes, sizeof(monospace_font_bytes), 24);
     assert(monospace_font);
+    /*
+    monospace2_font = Create_Font_From_Bytes(allocator, renderer, monospace2_font_bytes, sizeof(monospace2_font_bytes), 24);
+    monospace3_font = Create_Font_From_Bytes(allocator, renderer, monospace3_font_bytes, sizeof(monospace3_font_bytes), 24);
+    monospace4_font = Create_Font_From_Bytes(allocator, renderer, monospace4_font_bytes, sizeof(monospace4_font_bytes), 24);
+    assert(monospace2_font);
+    assert(monospace3_font);
+    assert(monospace4_font);
+    */
 }
 
 auto Destroy_Fonts() -> void {
-    // TODO: clean up monospace_font
-    TTF_Quit();
+    Destroy_Font(monospace_font);
 }
 
 auto Create_Font_From_Bytes(Allocator allocator, Renderer renderer, const u8* bytes, usize byte_count, u32 font_size) -> Font* {
     auto font = allocator.Create<Font>();
     assert(font);
-
+    font->renderer  = renderer;
     font->allocator = allocator;
 
-    auto sdl_font = TTF_OpenFontIO(SDL_IOFromConstMem(bytes, byte_count), false, font_size);
-    assert(sdl_font);
-    defer(TTF_CloseFont(sdl_font));
-
     assert(!FT_New_Memory_Face(ft_library, bytes, byte_count, 0, &font->ft_face));
-
     assert(!FT_Set_Pixel_Sizes(font->ft_face, font_size, font_size));
 
-    font->glyphs_of_atlas_side_count = ceil(sqrt(font->ft_face->num_glyphs));
-    font->font_metrics.ptsize        = font_size;
-    font->font_metrics.height        = font->ft_face->size->metrics.height >> 6;
-    font->use_kerning                = FT_HAS_KERNING(font->ft_face);
+    font->glyphs_of_atlas_side_count     = ceil(sqrt(font->ft_face->num_glyphs));
+    font->font_metrics.ptsize            = font_size;
+    font->font_metrics.height            = font->ft_face->size->metrics.height >> 6;
+    font->font_metrics.max_glyph_height  = INT_MIN;
+    font->font_metrics.max_glyph_advance = INT_MIN;
+    font->font_metrics.max_glyph_width   = INT_MIN;
+    font->use_kerning                    = FT_HAS_KERNING(font->ft_face);
 
-    auto surface = Render_Font_To_Surface(font, allocator);
+    auto surface = Render_Font_To_Surface(font);
     defer(SDL_DestroySurface(surface));
 
     font->atlas = SDL_CreateTextureFromSurface(renderer, surface);
@@ -84,23 +110,88 @@ auto Create_Font_From_Bytes(Allocator allocator, Renderer renderer, const u8* by
     return font;
 };
 
-/*
-auto Draw_Text(const Font* font, const char* text, u32 length, f32 x, f32 y) -> void {
-    auto surface = TTF_RenderText_Blended(font, text, length, SDL_Color{255, 255, 255, 255});
-    defer(SDL_DestroySurface(surface));
-    auto texture = SDL_CreateTextureFromSurface(renderer, surface);
-    defer(SDL_DestroyTexture(texture));
+auto Destroy_Font(Font* font) -> void {
+    SDL_DestroyTexture(font->atlas);
+    FT_Done_Face(font->ft_face);
+    font->allocator.Free(font->glyph_metrics);
+    font->allocator.Free(font);
+};
 
-    auto dst = SDL_FRect{
-        .x = x,
-        .y = y,
-        .w = (f32)(texture->w),
-        .h = (f32)(texture->h),
-    };
+auto Query_Glyph_Metrics(const Font* font, Uint32 ch) -> const Glyph_Metric* {
+    const Glyph_Metric* metrics = null;
+    FT_UInt glyph_index         = FT_Get_Char_Index(font->ft_face, ch);
+    if (glyph_index != 0) {
+        metrics = &font->glyph_metrics[glyph_index];
+    }
 
-    SDL_RenderTexture(renderer, texture, nullptr, &dst);
+    return metrics;
 }
-*/
+
+auto Get_Kerning_Offset(const Font* font, Uint32 ch, Uint32 previous_ch) -> i32 {
+    int offset = 0;
+
+    if (font->use_kerning) {
+        FT_UInt glyph_index          = FT_Get_Char_Index(font->ft_face, ch);
+        FT_UInt previous_glyph_index = FT_Get_Char_Index(font->ft_face, previous_ch);
+        if (glyph_index && previous_glyph_index) {
+            FT_Vector delta;
+            FT_Get_Kerning(font->ft_face, previous_glyph_index, glyph_index,
+                           FT_KERNING_DEFAULT, &delta);
+            offset = delta.x >> 6;
+        }
+    }
+
+    return offset;
+}
+
+static auto Render_Char(const Font* font, u32 ch, u32 previous_ch, Vec2 position) -> u32 {
+    int advance  = 0;
+    auto metrics = Query_Glyph_Metrics(font, ch);
+    if (metrics) {
+        SDL_FRect dstrect, srcrect = metrics->rect;
+        SDL_Color color;
+
+        dstrect.x = position.x;
+        dstrect.y = position.y - metrics->bearing.y + font->font_metrics.height;
+        dstrect.w = metrics->rect.w;
+        dstrect.h = metrics->rect.h;
+
+        if (previous_ch) {
+            advance += Get_Kerning_Offset(font, ch, previous_ch);
+            dstrect.x += advance;
+        }
+
+        SDL_GetRenderDrawColor(font->renderer, &color.r, &color.g, &color.b, &color.a);
+        SDL_SetTextureColorMod(font->atlas, color.r, color.g, color.b);
+        SDL_RenderTextureRotated(font->renderer, font->atlas, &srcrect, &dstrect, 0.0, null, SDL_FLIP_NONE);
+        advance += metrics->advance;
+    }
+
+    return advance;
+}
+
+auto Render_Text(const Font* font, String text, f32 x, f32 y) -> void {
+    Render_Text(font, text.ptr, text.size, x, y);
+}
+
+auto Render_Text(const Font* font, const u8* text, u32 text_number_of_bytes, f32 x, f32 y) -> void {
+    Vec2 cursor      = {x, y};
+    u32 previous_ch  = 0;
+    auto end_of_text = text + text_number_of_bytes;
+
+    for (; text < end_of_text; text++) {
+        u32 ch = Utf8_Decode(text, &text);
+        if (ch == '\n') {
+            cursor.x = x;
+            cursor.y += font->font_metrics.height;
+            previous_ch = 0;
+            continue;
+        } else {
+            cursor.x += Render_Char(font, ch, previous_ch, cursor);
+            previous_ch = ch;
+        }
+    }
+}
 
 auto Set_Glyph_Metrics_Of_Font(Font* font, usize index, i32 x, i32 y) -> void {
     font->glyph_metrics[index].rect.x    = x * font->font_metrics.ptsize;
@@ -121,13 +212,13 @@ auto Set_Glyph_Metrics_Of_Font(Font* font, usize index, i32 x, i32 y) -> void {
     }
 }
 
-static auto Render_Font_To_Surface(Font* font, Allocator allocator) -> SDL_Surface* {
+static auto Render_Font_To_Surface(Font* font) -> SDL_Surface* {
     auto size_of_atlas_side = font->glyphs_of_atlas_side_count * font->font_metrics.ptsize;
     auto surface            = SDL_CreateSurface(size_of_atlas_side, size_of_atlas_side, SDL_PIXELFORMAT_RGBA32);
     assert(surface);
 
     font->glyph_metrics_count = font->ft_face->num_glyphs;
-    font->glyph_metrics       = allocator.Alloc<Glyph_Metric>(font->glyph_metrics_count);
+    font->glyph_metrics       = font->allocator.Alloc<Glyph_Metric>(font->glyph_metrics_count);
     assert(font->glyph_metrics);
 
     FT_UInt index;
@@ -166,7 +257,7 @@ static auto Render_Font_To_Surface(Font* font, Allocator allocator) -> SDL_Surfa
     return surface;
 }
 
-auto Draw_Font_Atlas(const Font* font, Point pt) -> void {
+auto Render_Font_Atlas(const Font* font, Vec2 pt) -> void {
     auto dest_rect = SDL_FRect{
         f32(pt.x),
         f32(pt.y),

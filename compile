@@ -1,0 +1,29 @@
+#!/bin/cherry
+
+import fs
+
+output      := draco
+output-path := build/draco
+includes    := [ -Iinclude -I/usr/include/freetype2 ]
+libs        := [ -lSDL3 -lfreetype ]
+
+mkdir -p build
+
+#TODO: make parallel cached .o build with gnu parallel
+_, status := (g++ src/*.cpp -o $output-path $libs $includes)
+
+if (len $argv) == 0 || $status != 0 {
+    exit 0
+}
+
+arg := (get $argv 0)
+
+if $arg == run && (fs'exists $output-path) {
+    #TODO: this currently fails
+    #"./{output-path}"
+    ./build/draco
+} else if $arg == valgrind {
+  valgrind $output-path
+} else if $arg == leaks {
+  valgrind "--leak-check=full" $output-path
+}
