@@ -1,6 +1,11 @@
 #pragma once
 
+#include <cstring>
+
+#include "slice.hpp"
 #include "types.hpp"
+
+struct String;
 
 struct Allocator {
     using Alloc_Fn = void* (*)(void* context, usize size);
@@ -24,6 +29,18 @@ struct Allocator {
     auto Free(const T* ptr) -> void {
         free(context, (void*)ptr);
     }
+
+    template <typename T>
+    auto Dupe(Slice<T> slice) -> Slice<T> {
+        auto ptr = Alloc<T>(slice.size);
+        memcpy(ptr, slice.data, sizeof(T) * slice.size);
+        return {
+            .data = ptr,
+            .size = slice.size,
+        };
+    }
+
+    auto DupeString(String string) -> String;
 };
 
 struct Tracing_Allocator {

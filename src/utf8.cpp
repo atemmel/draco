@@ -3,7 +3,7 @@
 typedef struct {
     unsigned char mask;
     unsigned char lead;
-    int bits_stored;
+    int           bits_stored;
 } Utf8_Rune;
 
 static Utf8_Rune utf_length_table[] = {

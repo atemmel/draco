@@ -13,6 +13,7 @@
 #include "strings.hpp"
 
 auto loop() -> void;
+auto Font_Correctness_Test(Font* font, String string, f32 f) -> void;
 
 auto main() -> int {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
@@ -39,15 +40,15 @@ auto main() -> int {
     return 0;
 }
 
-bool animating  = false;
-i64 last_tick   = 0;
-Vec2 was_pos    = {-1.f, -1.f};
-f32 was_scroll  = 0.f;
-f32 zoom_scalar = 0.f;
-bool ctrl_down  = false;
+bool animating   = false;
+i64  last_tick   = 0;
+Vec2 was_pos     = {-1.f, -1.f};
+f32  was_scroll  = 0.f;
+f32  zoom_scalar = 0.f;
+bool ctrl_down   = false;
 
 auto loop() -> void {
-    auto running = true;
+    auto      running = true;
     SDL_Event event;
     for (;;) {
         while (SDL_PollEvent(&event)) {
@@ -72,12 +73,21 @@ auto loop() -> void {
 
         auto str = "gaming->man + 50 * My_Func() {} [0]"_s;
 
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-
-        Render_Text(monospace_font, str, 0, 0);
+        Font_Correctness_Test(monospace_font, str, 0.f);
+        Font_Correctness_Test(monospace2_font, str, 1.f);
+        Font_Correctness_Test(monospace3_font, str, 3.f);
+        Font_Correctness_Test(monospace4_font, str, 2.f);
 
         SDL_RenderPresent(renderer);
 
         Sleep_Until_Next_Frame();
     }
 };
+
+auto Font_Correctness_Test(Font* font, String string, f32 f) -> void {
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    Render_Text(font, string, 0, 64.f * f);
+    auto dim  = Calculate_Text_Dimensions_With_Font(font, string);
+    auto rect = SDL_FRect{0.f, 64.f * f, dim.x, dim.y};
+    SDL_RenderRect(renderer, &rect);
+}

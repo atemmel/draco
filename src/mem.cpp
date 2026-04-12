@@ -3,7 +3,18 @@
 #include <cassert>
 #include <cstdlib>
 
+#include "strings.hpp"
 #include "types.hpp"
+
+auto Allocator::DupeString(String string) -> String {
+    auto ptr = Alloc<u8>(string.size + 1);
+    memcpy(ptr, string.data, sizeof(u8) * string.size);
+    ptr[string.size] = 0;
+    return {
+        .data = ptr,
+        .size = string.size,
+    };
+}
 
 auto Default_Allocator_Alloc(void*, usize size) -> void* {
     return malloc(size);

@@ -1,0 +1,66 @@
+#pragma once
+
+#include "array.hpp"
+#include "fonts.hpp"
+#include "mem.hpp"
+#include "slice.hpp"
+#include "strings.hpp"
+
+struct Virtual_Line {
+    usize begin, end;
+};
+
+struct Virtual_Line_Idx {
+    usize begin, end;
+};
+
+struct Real_Line {
+    usize            begin;
+    usize            end;
+    Virtual_Line_Idx virtual_lines;
+};
+
+struct Virtual_Cursor {
+    usize row, column;
+};
+
+struct Cursor_Draw_Data {
+    f32    virtual_row;
+    String text_left_of_cursor;
+};
+
+struct Editor {
+    Arena_Allocator     arena;
+    Allocator           base_allocator;
+    Array<u8>           buffer;
+    Array<Real_Line>    lines;
+    Array<Virtual_Line> virtual_lines;
+    Font*               font;
+    usize               cursor;
+    String              active_file;
+    usize               rightmost_cursor_codepoint;
+    i64                 scroll_offset;
+    i64                 lines_on_screen;
+};
+
+auto Create_Editor(Allocator base_allocator, Font* font) -> Editor;
+auto Destroy_Editor(Editor* editor) -> void;
+
+auto Editor_Open_File(Editor* editor, String filename) -> void;
+auto Editor_Open_Source(Editor* editor, String source) -> void;
+auto Editor_Save(Editor* editor) -> void;
+
+auto Editor_Insert_Text(Editor* editor, String content) -> void;
+auto Editor_Insert_Newline(Editor* editor) -> void;
+auto Editor_Left(Editor* editor) -> void;
+auto Editor_Right(Editor* editor) -> void;
+auto Editor_Up(Editor* editor) -> void;
+auto Editor_Down(Editor* editor) -> void;
+auto Editor_Beginning_Of_Line(Editor* editor) -> void;
+auto Editor_End_Of_Line(Editor* editor) -> void;
+auto Editor_Remove_Left_Of_Cursor(Editor* editor) -> void;
+auto Editor_Remove_Right_Of_Cursor(Editor* editor) -> void;
+
+auto Editor_Virtual_Lines(Editor* editor, usize real_line) -> Slice<Virtual_Line>;
+auto Editor_Virtual_Cursor_Position(Editor* editor, usize real_line) -> Virtual_Cursor;
+auto Editor_Cursor_Draw_Data(Editor* editor) -> Cursor_Draw_Data;
