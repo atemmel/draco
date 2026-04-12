@@ -5,7 +5,7 @@
 
 auto Read_All_From_File_As_String(Allocator allocator, String path) -> String {
     auto handle = fopen(path, "r");
-    if (!handle) return {0};
+    if (!handle) return {0};  // TODO: error handling
     fseek(handle, 0, SEEK_END);
     usize file_size_in_bytes = ftell(handle);
     fseek(handle, 0, SEEK_SET);
