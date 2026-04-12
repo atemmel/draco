@@ -72,6 +72,9 @@ auto Init_Fonts(Allocator allocator) -> void {
 
 auto Destroy_Fonts() -> void {
     Destroy_Font(monospace_font);
+    Destroy_Font(monospace2_font);
+    Destroy_Font(monospace3_font);
+    Destroy_Font(monospace4_font);
 }
 
 auto Create_Font_From_Bytes(Allocator allocator, Renderer renderer, const u8* bytes, usize byte_count, u32 font_size) -> Font* {
