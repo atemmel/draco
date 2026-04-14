@@ -9,14 +9,16 @@ using Window   = SDL_Window*;
 using Texture  = SDL_Texture*;
 
 extern Renderer renderer;
-extern Window window;
+extern Window   window;
 
 auto Init_Renderer() -> void;
 auto Destroy_Renderer() -> void;
 
 auto Dump_Available_Drivers() -> void;
+auto Window_Size() -> Vec2;
 
 auto Renderer_Set_Color(Vec4 color) -> void;
 auto Renderer_Clear(Vec4 color) -> void;
+auto Renderer_Present() -> void;
 
 auto Sleep_Until_Next_Frame() -> void;

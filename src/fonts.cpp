@@ -110,6 +110,10 @@ auto Destroy_Font(Font* font) -> void {
     font->allocator.Free(font);
 };
 
+auto Font_Size(const Font* font) -> f32 {
+    return f32(font->font_metrics.ptsize);
+}
+
 auto Query_Glyph_Metrics(const Font* font, Uint32 ch) -> const Glyph_Metric* {
     const Glyph_Metric* metrics     = null;
     FT_UInt             glyph_index = FT_Get_Char_Index(font->ft_face, ch);

@@ -25,8 +25,8 @@ struct Virtual_Cursor {
 };
 
 struct Cursor_Draw_Data {
-    f32    virtual_row;
-    String text_left_of_cursor;
+    f32       virtual_row;
+    Slice<u8> text_left_of_cursor;
 };
 
 struct Editor {
@@ -62,5 +62,5 @@ auto Editor_Remove_Left_Of_Cursor(Editor* editor) -> void;
 auto Editor_Remove_Right_Of_Cursor(Editor* editor) -> void;
 
 auto Editor_Virtual_Lines(Editor* editor, usize real_line) -> Slice<Virtual_Line>;
-auto Editor_Virtual_Cursor_Position(Editor* editor, usize real_line) -> Virtual_Cursor;
+auto Editor_Virtual_Cursor_Position(Editor* editor) -> Virtual_Cursor;
 auto Editor_Cursor_Draw_Data(Editor* editor) -> Cursor_Draw_Data;

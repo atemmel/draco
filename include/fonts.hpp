@@ -36,6 +36,8 @@ auto Create_Font_From_Bytes(Allocator allocator, Renderer renderer, const u8* by
 
 auto Destroy_Font(Font* font) -> void;
 
+auto Font_Size(const Font* font) -> f32;
+
 auto Render_Text(const Font* font, String text, f32 x, f32 y) -> void;
 
 auto Render_Text(const Font* font, const u8* text, u32 length, f32 x, f32 y) -> void;

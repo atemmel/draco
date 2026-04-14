@@ -60,6 +60,8 @@ auto Editor_Open_File(Editor* editor, String filename) -> void {
 }
 
 auto Editor_Open_Source(Editor* editor, String source) -> void {
+    Clear(editor->buffer);
+    Append_Slice(editor->base_allocator, editor->buffer, source.Slice());
 }
 
 auto Editor_Save(Editor* editor) -> void {
@@ -98,10 +100,35 @@ auto Editor_Remove_Right_Of_Cursor(Editor* editor) -> void {
 auto Editor_Virtual_Lines(Editor* editor, usize real_line) -> Slice<Virtual_Line> {
 }
 
-auto Editor_Virtual_Cursor_Position(Editor* editor, usize real_line) -> Virtual_Cursor {
+auto Editor_Virtual_Cursor_Position(Editor* editor) -> Virtual_Cursor {
+    auto cursor = editor->cursor;
+    for (auto line : editor->lines) {
+        if (cursor >= line.begin && cursor <= line.end) {
+            auto slice = editor->virtual_lines.slice(line.virtual_lines.begin, line.virtual_lines.end);
+            for (usize idx = 0; idx < slice.size; idx++) {
+                const auto virt_line = slice[idx];
+                if (cursor >= virt_line.begin && cursor <= virt_line.end) {
+                    return {
+                        .row    = line.virtual_lines.begin + idx,
+                        .column = cursor - virt_line.begin,
+                    };
+                }
+            }
+        }
+    }
+    return {
+        .row    = 0,
+        .column = 0,
+    };
 }
 
 auto Editor_Cursor_Draw_Data(Editor* editor) -> Cursor_Draw_Data {
+    auto pos  = Editor_Virtual_Cursor_Position(editor);
+    auto line = editor->virtual_lines[pos.row];
+    return {
+        .virtual_row         = f32(pos.row),
+        .text_left_of_cursor = editor->buffer.slice(line.begin, line.begin + pos.column),
+    };
 }
 
 // Internal
@@ -136,13 +163,14 @@ static auto Editor_Reindex_Virtual_Lines(Editor* editor) -> void {
 
     const auto max_width = 800;  // TODO: no hardcoded
 
-    Array_Each(editor->lines, line, idx, {
-        auto  virtual_line_slice_begin = editor->virtual_lines.size;
-        auto  line_slice               = editor->buffer.slice(0, line.end);
-        auto  virtual_line_begin       = line.begin;
-        auto  word_begin               = line.begin;
-        usize i                        = 0;
-        f32   x                        = 0;
+    for (usize idx = 0; idx < editor->lines.size; idx++) {
+        const auto line                     = editor->lines[idx];
+        auto       virtual_line_slice_begin = editor->virtual_lines.size;
+        auto       line_slice               = editor->buffer.slice(0, line.end);
+        auto       virtual_line_begin       = line.begin;
+        auto       word_begin               = line.begin;
+        usize      i                        = 0;
+        f32        x                        = 0;
 
         for (; i < line_slice.size; i += 1) {
             if (line_slice[i] != ' ') {
@@ -151,60 +179,32 @@ static auto Editor_Reindex_Virtual_Lines(Editor* editor) -> void {
             i             = min(i + 1, line_slice.size);
             auto word     = line_slice.slice(word_begin, i);
             auto word_dim = Calculate_Text_Dimensions_With_Font(editor->font, word);
-        }
-    });
-
-    /*
-    for (self.allRealLines(), 0..) | line, idx | {
-            const virtual_line_slice_begin = self.virtual_lines.items.len;
-            const line_slice               = self.buffer.items[0..line.end];
-            var virtual_line_begin : usize = line.begin;
-            var word_begin : usize         = line.begin;
-            var i : usize                  = line.begin;
-            var x : f32                    = 0;
-            while (i < line_slice.len) : (i += 1) {
-                    if (line_slice[i] != ' ') {
-                        continue;
-                    }
-                    i              = @min(i + 1, line_slice.len);
-                    const word     = line_slice[word_begin..i];
-                    const word_dim = rend.strdim(rend.body_font, word);
-                    if (word_dim.w + x > max_width) {
-                        try self.virtual_lines.append(self.base_allocator, .{
-                                                                               .begin = virtual_line_begin,
-                                                                               .end   = i - 1,
-                                                                           });
-                        x                  = 0;
-                        word_begin         = i;
-                        virtual_line_begin = i;
-                    }
-
-                    word_begin = i;
-                    x += word_dim.w;
-                }
-            const word     = line_slice[word_begin..];
-            const word_dim = rend.strdim(rend.body_font, word);
-            if (word_dim.w + x > max_width) {
-                try self.virtual_lines.append(self.base_allocator, .{
-                                                                       .begin = virtual_line_begin,
-                                                                       .end   = i,
-                                                                   });
+            if (word_dim.x + x > max_width) {
+                Append(editor->base_allocator, editor->virtual_lines, {virtual_line_begin, i - 1});
                 x                  = 0;
                 word_begin         = i;
                 virtual_line_begin = i;
             }
 
-            // only allow trailing empty virtual rows if the original row is empty
-            if (line.begin == virtual_line_begin or virtual_line_begin != i) {
-                try self.virtual_lines.append(self.base_allocator, .{ .begin = virtual_line_begin,
-                                                                      .end   = @min(i, line_slice.len), });
-            }
-
-            const virtual_line_slice_end        = self.virtual_lines.items.len;
-            self.lines.items[idx].virtual_lines =.{
-                .begin = virtual_line_slice_begin,
-                .end   = virtual_line_slice_end,
-            };
+            word_begin = i;
+            x += word_dim.x;
         }
-        */
+
+        auto word     = line_slice.slice(word_begin);
+        auto word_dim = Calculate_Text_Dimensions_With_Font(editor->font, word);
+        if (word_dim.x + x > max_width) {
+            Append(editor->base_allocator, editor->virtual_lines, {virtual_line_begin, i});
+            x                  = 0;
+            word_begin         = i;
+            virtual_line_begin = i;
+        }
+
+        // only allow trailing empty virtual rows if the original row is empty
+        if (line.begin == virtual_line_begin || virtual_line_begin != i) {
+            Append(editor->base_allocator, editor->virtual_lines, {virtual_line_begin, min(i, line_slice.size)});
+        }
+
+        auto virtual_line_slice_end      = editor->virtual_lines.size;
+        editor->lines[idx].virtual_lines = {virtual_line_slice_begin, virtual_line_slice_end};
+    }
 }

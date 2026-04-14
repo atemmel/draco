@@ -13,9 +13,9 @@ const auto PROG_NAME = "draco";
 const auto W         = 1200;
 const auto H         = 800;
 
-u64 refresh_rate_ns;
+u64      refresh_rate_ns;
 Renderer renderer;
-Window window;
+Window   window;
 
 auto Set_Refresh_Rate(f32 display_fps) -> void {
     refresh_rate_ns = (1000 * 1000) / display_fps;
@@ -50,11 +50,17 @@ auto Destroy_Renderer() -> void {
 auto Dump_Available_Drivers() -> void {
     printf("Available drivers:\n");
 
-    i32 i            = 0;
+    i32         i    = 0;
     const char* driv = SDL_GetRenderDriver(0);
     for (; driv; i++, driv = SDL_GetRenderDriver(i)) {
         printf("%s\n", driv);
     }
+}
+
+auto Window_Size() -> Vec2 {
+    int w, h;
+    SDL_GetWindowSizeInPixels(window, &w, &h);
+    return {f32(w), f32(h)};
 }
 
 auto Renderer_Set_Color(Vec4 color) -> void {
@@ -65,6 +71,10 @@ auto Renderer_Clear(Vec4 color) -> void {
     Renderer_Set_Color(color);
     SDL_RenderClear(renderer);
 }
+
+auto Renderer_Present() -> void {
+    SDL_RenderPresent(renderer);
+};
 
 auto Sleep_Until_Next_Frame() -> void {
     usleep(refresh_rate_ns);
