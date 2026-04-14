@@ -62,6 +62,7 @@ auto Editor_Open_File(Editor* editor, String filename) -> void {
 auto Editor_Open_Source(Editor* editor, String source) -> void {
     Clear(editor->buffer);
     Append_Slice(editor->base_allocator, editor->buffer, source.Slice());
+    Editor_Reindex(editor);
 }
 
 auto Editor_Save(Editor* editor) -> void {

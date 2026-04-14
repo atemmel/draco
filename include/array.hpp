@@ -45,7 +45,7 @@ struct Array {
 
     auto slice(usize from, usize to) -> Slice<T> {
         assert(from < size);
-        assert(to < size);
+        assert(to <= size);
         assert(from <= to);
         return {
             .data = data + from,

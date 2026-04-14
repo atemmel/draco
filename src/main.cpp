@@ -2,6 +2,7 @@
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_init.h>
 #include <SDL3/SDL_render.h>
+#include <SDL3/SDL_timer.h>
 
 #include <cassert>
 #include <cstdio>
@@ -50,6 +51,8 @@ auto main() -> int {
     editor = Create_Editor(allocator, monospace_font);
     Destroy_Editor(&editor);
 
+    Editor_Open_Source(&editor, "Hello, World"_s);
+
     loop();
     return 0;
 }
@@ -65,9 +68,9 @@ auto loop() -> void {
     auto      running = true;
     SDL_Event event;
     for (;;) {
-        // auto current_tick = std.time.microTimestamp();
-        // defer last_tick = current_tick;
-        // const auto dt = f32((current_tick - last_tick) / std.time.us_per_s);
+        auto current_tick = SDL_GetTicksNS();
+        defer(last_tick = current_tick;);
+        const auto dt = f32(SDL_NS_TO_SECONDS(current_tick) - SDL_NS_TO_SECONDS(last_tick));
 
         while (SDL_PollEvent(&event)) {
             switch (event.type) {
@@ -100,7 +103,7 @@ auto loop() -> void {
         SDL_RenderPresent(renderer);
         */
 
-        draw(0);
+        draw(dt);
 
         Sleep_Until_Next_Frame();
     }

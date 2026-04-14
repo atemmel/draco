@@ -10,7 +10,7 @@ libs        := [ -lSDL3 -lfreetype ]
 mkdir -p build
 
 #TODO: make parallel cached .o build with gnu parallel
-_, status := (g++ src/*.cpp -o $output-path $libs $includes)
+_, status := (g++ src/*.cpp -o $output-path $libs $includes -g)
 
 if (len $argv) == 0 || $status != 0 {
     exit 0
@@ -26,4 +26,6 @@ if $arg == run && (fs'exists $output-path) {
   valgrind $output-path
 } else if $arg == leaks {
   valgrind "--leak-check=full" $output-path
+} else if $arg == debug {
+  seergdb -s $output-path
 }
