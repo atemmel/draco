@@ -1,5 +1,9 @@
 #include "strings.hpp"
 
+#include <cstdarg>
+#include <cstdio>
+#include <cstring>
+
 String::operator const char*() const {
     return (char*)data;
 }
@@ -18,10 +22,28 @@ auto operator""_s(const char* ptr, unsigned long size) -> String {
     };
 }
 
+auto As_String(const char* ptr) -> String {
+    return {
+        .data = (u8*)ptr,
+        .size = strlen(ptr),
+    };
+};
+
 auto Destroy_String(Allocator allocator, String& str) -> void {
     allocator.Free(str.data);
     str = {
         .data = null,
         .size = 0,
+    };
+}
+
+auto Sprintf(u8* s, usize maxlen, const char* format, ...) -> String {
+    va_list args;
+    va_start(args, format);
+    usize size = vsnprintf((char*)s, maxlen, format, args);
+    va_end(args);
+    return String{
+        .data = s,
+        .size = size,
     };
 }

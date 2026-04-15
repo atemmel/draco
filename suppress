@@ -1,0 +1,16 @@
+{
+   Nvidia_Driver_False_Positive
+   Memcheck:Cond
+   obj:*/libglcore.so*
+}
+{
+   Nvidia_Driver_False_Positive_2
+   Memcheck:Value4
+   obj:*/libglcore.so*
+}
+{
+   Nvidia_Driver_Leak
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   obj:*/libnvidia-glcore.so*
+}

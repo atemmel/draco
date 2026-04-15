@@ -62,7 +62,7 @@ auto Init_Fonts(Allocator allocator) -> void {
     assert(!FT_Init_FreeType(&ft_library));
 
     monospace_font  = Create_Font_From_Bytes(allocator, renderer, monospace_font_bytes, sizeof(monospace_font_bytes), 24);
-    regular_font    = Create_Font_From_Bytes(allocator, renderer, regular_bold_italic_font_bytes, sizeof(regular_bold_italic_font_bytes), 20);
+    regular_font    = Create_Font_From_Bytes(allocator, renderer, regular_bold_italic_font_bytes, sizeof(regular_bold_italic_font_bytes), 24);
     monospace2_font = Create_Font_From_Bytes(allocator, renderer, monospace2_font_bytes, sizeof(monospace2_font_bytes), 24);
     monospace3_font = Create_Font_From_Bytes(allocator, renderer, monospace3_font_bytes, sizeof(monospace3_font_bytes), 24);
     monospace4_font = Create_Font_From_Bytes(allocator, renderer, regular_bold_italic_font_bytes, sizeof(regular_bold_italic_font_bytes), 24);

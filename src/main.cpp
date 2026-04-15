@@ -5,6 +5,7 @@
 #include <SDL3/SDL_timer.h>
 
 #include <cassert>
+#include <cmath>
 #include <cstdio>
 
 #include "defer.hpp"
@@ -27,7 +28,7 @@ auto Font_Correctness_Test(Font* font, String string, f32 f) -> void;
 
 Editor editor;
 
-auto main() -> int {
+auto main(int argc, char* argv[]) -> int {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("SDL_Init() Error: %s", SDL_GetError());
         return -1;
@@ -51,7 +52,11 @@ auto main() -> int {
     editor = Create_Editor(allocator, monospace_font);
     Destroy_Editor(&editor);
 
-    Editor_Open_Source(&editor, "Hello, World"_s);
+    if (argc > 1) {
+        Editor_Open_File(&editor, As_String(argv[1]));
+    } else {
+        Editor_Open_Source(&editor, ""_s);
+    }
 
     loop();
     return 0;
@@ -157,31 +162,32 @@ auto draw(f32 dt) -> void {
     Renderer_Clear(BG);
     Renderer_Set_Color(FG);
     Render_Text(regular_font, "Title q8^)"_s, 100.f, 100.f);
-    /*
-    rend.drawText(rend.header_font, "Title  q8^)", FG, 100.0, 100.0);
-    var n_virtual_line : i64 = 0;
-    for (pane.editor.allRealLines(), 0..) | _, idx | {
-            {
-                const y           = offset_y + @as(f32, @floatFromInt(n_virtual_line)) * line_height - was_scroll;
-                const line_no_str = std.fmt.bufPrint(&static.buffer, "{}", .{idx + 1}) catch "X";
-                const line_no_dim = rend.strdim(rend.body_font, line_no_str);
-                if (@ceil(y) >= offset_y) {
-                    rend.drawText(rend.body_font, line_no_str, FG_2, line_no_offset_x - line_no_dim.w, y);
-                }
+
+    i64 n_virtual_line = 0;
+    for (usize idx = 0; idx < editor.lines.size; idx++) {
+        {
+            f32  y           = offset_y + f32(n_virtual_line) * line_height - was_scroll;
+            auto line_no_str = Sprintf(buffer, sizeof(buffer), "%lu", idx + 1);
+            auto line_no_dim = Calculate_Text_Dimensions_With_Font(font, line_no_str);
+            if (ceilf(y) >= offset_y) {
+                Renderer_Set_Color(FG);
+                Render_Text(font, line_no_str, line_no_offset_x - line_no_dim.x, y);
             }
-
-            const virtual_lines = pane.editor.virtualLines(idx);
-
-            for (virtual_lines) | virtual_line | {
-                    const slice = pane.editor.buffer.items[virtual_line.begin..virtual_line.end];
-                    const y     = offset_y + @as(f32, @floatFromInt(n_virtual_line)) * line_height - was_scroll;
-                    if (@ceil(y) >= offset_y) {
-                        rend.drawText(rend.body_font, slice, FG, offset_x, y);
-                    }
-                    n_virtual_line += 1;
-                }
         }
 
+        Renderer_Set_Color(FG);
+        auto virtual_lines = Editor_Virtual_Lines(&editor, idx);
+        for (auto virtual_line : virtual_lines) {
+            auto slice = editor.buffer.slice(virtual_line.begin, virtual_line.end);
+            f32  y     = offset_y + f32(n_virtual_line) * line_height - was_scroll;
+            if (ceilf(y) >= offset_y) {
+                Render_Text(font, slice.data, slice.size, offset_x, y);
+            }
+            n_virtual_line += 1;
+        }
+    }
+
+    /*
     _ = c.SDL_SetRenderDrawColorFloat(rend.renderer, FG.x, FG.y, FG.z, FG.w);
     _ = c.SDL_RenderFillRect(rend.renderer, &rect);
     rend.drawWindowDecoration(gui);

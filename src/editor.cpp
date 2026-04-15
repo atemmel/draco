@@ -2,6 +2,8 @@
 
 #include <SDL3/SDL_render.h>
 
+#include <cstdio>
+
 #include "array.hpp"
 #include "fs.hpp"
 #include "mem.hpp"
@@ -99,6 +101,8 @@ auto Editor_Remove_Right_Of_Cursor(Editor* editor) -> void {
 }
 
 auto Editor_Virtual_Lines(Editor* editor, usize real_line) -> Slice<Virtual_Line> {
+    auto virtual_line_idx = editor->lines[real_line].virtual_lines;
+    return editor->virtual_lines.slice(virtual_line_idx.begin, virtual_line_idx.end);
 }
 
 auto Editor_Virtual_Cursor_Position(Editor* editor) -> Virtual_Cursor {
@@ -142,7 +146,10 @@ static auto Editor_Reindex_Real_Lines(Editor* editor) -> void {
     Clear(editor->lines);
     usize begin = 0;
 
-    Array_Each(editor->buffer, c, idx, {
+    printf("%p %lu\n", editor->buffer.data, editor->buffer.size);
+
+    for (usize idx = 0; idx < editor->buffer.size; idx++) {
+        u8 c = editor->buffer[idx];
         if (c == '\n') {
             auto end = idx;
             Append(editor->base_allocator, editor->lines, {
@@ -151,7 +158,7 @@ static auto Editor_Reindex_Real_Lines(Editor* editor) -> void {
                                                           });
             begin = end + 1;
         }
-    });
+    };
 
     Append(editor->base_allocator, editor->lines, {
                                                       .begin = begin,
