@@ -10,7 +10,7 @@ libs        := [ -lSDL3 -lfreetype ]
 mkdir -p build
 
 #TODO: make parallel cached .o build with gnu parallel
-_, status := (g++ src/*.cpp -o $output-path $libs $includes -g)
+_, status := (g++ src/*.cpp -o $output-path $libs $includes -g -Ofast)
 
 if (len $argv) == 0 || $status != 0 {
     exit 0
@@ -22,8 +22,8 @@ if $arg == run && (fs'exists $output-path) {
     #TODO: this currently fails
     #"./{output-path}"
     ./build/draco
-} else if $arg == valgrind {
-  valgrind $output-path
+} else if $arg == bench {
+  valgrind "--tool=cachegrind" $output-path
 } else if $arg == leaks {
   valgrind "--leak-check=full" $output-path
 } else if $arg == debug {

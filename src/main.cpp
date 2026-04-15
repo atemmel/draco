@@ -67,7 +67,7 @@ bool ctrl_down   = false;
 auto loop() -> void {
     auto      running = true;
     SDL_Event event;
-    for (;;) {
+    do {
         auto current_tick = SDL_GetTicksNS();
         defer(last_tick = current_tick;);
         const auto dt = f32(SDL_NS_TO_SECONDS(current_tick) - SDL_NS_TO_SECONDS(last_tick));
@@ -106,7 +106,7 @@ auto loop() -> void {
         draw(dt);
 
         Sleep_Until_Next_Frame();
-    }
+    } while (true);
 };
 
 auto draw(f32 dt) -> void {
@@ -156,7 +156,7 @@ auto draw(f32 dt) -> void {
 
     Renderer_Clear(BG);
     Renderer_Set_Color(FG);
-    Render_Text(font, "Title q8^)"_s, 100.f, 100.f);
+    Render_Text(regular_font, "Title q8^)"_s, 100.f, 100.f);
     /*
     rend.drawText(rend.header_font, "Title  q8^)", FG, 100.0, 100.0);
     var n_virtual_line : i64 = 0;
