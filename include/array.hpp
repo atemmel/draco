@@ -44,7 +44,7 @@ struct Array {
     }
 
     auto slice(usize from, usize to) -> Slice<T> {
-        assert(from < size);
+        assert(from <= size);
         assert(to <= size);
         assert(from <= to);
         return {
@@ -91,6 +91,10 @@ auto Append(Allocator allocator, Array<T>& array, const T& value) -> Array<T> {
 
 template <typename T>
 auto Append_Slice(Allocator allocator, Array<T>& array, Slice<T> slice) -> Array<T> {
+    if (!slice.size) {
+        return array;
+    }
+
     if (array.size + slice.size < array.capacity) {
         memcpy(array.data + array.size, slice.data, sizeof(T) * slice.size);
         array.size += slice.size;

@@ -52,6 +52,12 @@ auto main(int argc, char* argv[]) -> int {
     editor = Create_Editor(allocator, monospace_font);
     Destroy_Editor(&editor);
 
+    printf("argv: ");
+    for (int i = 0; i < argc; i++) {
+        printf("%s ", argv[i]);
+    }
+    printf("\n");
+
     if (argc > 1) {
         Editor_Open_File(&editor, As_String(argv[1]));
     } else {

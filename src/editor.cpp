@@ -57,6 +57,7 @@ auto Destroy_Editor(Editor* editor) -> void {
 auto Editor_Open_File(Editor* editor, String filename) -> void {
     editor->active_file = editor->arena.Interface().DupeString(filename);
     auto file_contents  = Read_All_From_File_As_String(editor->base_allocator, editor->active_file);
+    printf("Waow!\n");
     Append_Slice(editor->base_allocator, editor->buffer, file_contents.Slice());
     Editor_Reindex(editor);
 }
@@ -145,8 +146,6 @@ static auto Editor_Reindex(Editor* editor) -> void {
 static auto Editor_Reindex_Real_Lines(Editor* editor) -> void {
     Clear(editor->lines);
     usize begin = 0;
-
-    printf("%p %lu\n", editor->buffer.data, editor->buffer.size);
 
     for (usize idx = 0; idx < editor->buffer.size; idx++) {
         u8 c = editor->buffer[idx];

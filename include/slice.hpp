@@ -39,7 +39,7 @@ struct Slice {
     }
 
     auto slice(usize from, usize to) -> Slice<T> {
-        assert(from < size);
+        assert(from <= size);
         assert(to <= size);
         assert(from <= to);
         return {

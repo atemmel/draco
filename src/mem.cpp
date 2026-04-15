@@ -7,12 +7,18 @@
 #include "types.hpp"
 
 auto Allocator::DupeString(String string) -> String {
+    if (string.size == 0) {
+        return {
+            .data = null,
+            .size = 0,
+        };
+    }
     auto ptr = Alloc<u8>(string.size + 1);
     memcpy(ptr, string.data, sizeof(u8) * string.size);
     ptr[string.size] = 0;
     return {
         .data = ptr,
-        .size = string.size,
+        .size = string.size - 1,
     };
 }
 
@@ -97,8 +103,8 @@ auto Arena_Allocator_Free(void* context, void* ptr) -> void {
 
 auto Arena_Allocator::Interface() -> Allocator {
     return {
-        .alloc   = Tracing_Allocator_Alloc,
-        .free    = Tracing_Allocator_Free,
+        .alloc   = Arena_Allocator_Alloc,
+        .free    = Arena_Allocator_Free,
         .context = (void*)this,
     };
 }

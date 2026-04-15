@@ -16,18 +16,21 @@ if (len $argv) == 0 || $status != 0 {
     exit 0
 }
 
-arg := (get $argv 0)
+arg  := (get $argv 0)
+rest := (slice $argv 1 (len $argv))
 
 if $arg == run && (fs'exists $output-path) {
     #TODO: this currently fails
     #"./{output-path}"
-    ./build/draco
-} else if $arg == bench {
-    valgrind "--tool=cachegrind" $output-path
+    ./build/draco $rest
+} else if $arg == cachegrind {
+    valgrind "--tool=cachegrind" $output-path $rest
+} else if $arg == perf {
+    perf record -g -- $output-path
 } else if $arg == leaks {
-    valgrind "--leak-check=full" "--suppressions=suppress" $output-path
+    valgrind "--leak-check=full" "--suppressions=suppress" $output-path $rest
 } else if $arg == debug {
-    seergdb -s $output-path
+    seergdb -s $output-path $rest
 } else {
     say "No idea what you meant with '{arg}', but hey, at least your stuff builds, right?"
 }
