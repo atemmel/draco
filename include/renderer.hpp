@@ -18,6 +18,7 @@ auto Dump_Available_Drivers() -> void;
 auto Window_Size() -> Vec2;
 
 auto Renderer_Set_Color(Vec4 color) -> void;
+auto Renderer_Draw_Rect(Rect rect) -> void;
 auto Renderer_Clear(Vec4 color) -> void;
 auto Renderer_Present() -> void;
 

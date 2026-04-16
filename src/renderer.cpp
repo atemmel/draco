@@ -67,6 +67,11 @@ auto Renderer_Set_Color(Vec4 color) -> void {
     SDL_SetRenderDrawColorFloat(renderer, color.r, color.g, color.b, color.a);
 }
 
+auto Renderer_Draw_Rect(Rect rect) -> void {
+    auto r = SDL_FRect(rect);
+    SDL_RenderFillRect(renderer, &r);
+}
+
 auto Renderer_Clear(Vec4 color) -> void {
     Renderer_Set_Color(color);
     SDL_RenderClear(renderer);

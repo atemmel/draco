@@ -72,7 +72,7 @@ bool animating   = false;
 i64  last_tick   = 0;
 Vec2 was_pos     = {-1.f, -1.f};
 f32  was_scroll  = 0.f;
-f32  zoom_scalar = 0.f;
+f32  zoom_scalar = 1.f;
 bool ctrl_down   = false;
 
 auto loop() -> void {
@@ -162,7 +162,7 @@ auto draw(f32 dt) -> void {
         .x = was_pos.x,
         .y = was_pos.y,
         .w = 2.f * zoom_scalar,
-        .h = 24.f * zoom_scalar,
+        .h = f32(Font_Size(font)) * zoom_scalar,
     };
 
     Renderer_Clear(BG);
@@ -179,6 +179,8 @@ auto draw(f32 dt) -> void {
                 Renderer_Set_Color(FG);
                 Render_Text(font, line_no_str, line_no_offset_x - line_no_dim.x, y);
             }
+            auto r = Rect{0.f, y, 200.f, 2.f};
+            Renderer_Draw_Rect(r);
         }
 
         Renderer_Set_Color(FG);
@@ -193,9 +195,9 @@ auto draw(f32 dt) -> void {
         }
     }
 
+    Renderer_Set_Color(FG);
+    Renderer_Draw_Rect(rect);
     /*
-    _ = c.SDL_SetRenderDrawColorFloat(rend.renderer, FG.x, FG.y, FG.z, FG.w);
-    _ = c.SDL_RenderFillRect(rend.renderer, &rect);
     rend.drawWindowDecoration(gui);
     */
     Renderer_Present();
