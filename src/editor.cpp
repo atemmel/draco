@@ -2,8 +2,6 @@
 
 #include <SDL3/SDL_render.h>
 
-#include <cstdio>
-
 #include "array.hpp"
 #include "fs.hpp"
 #include "mem.hpp"
@@ -56,8 +54,7 @@ auto Destroy_Editor(Editor* editor) -> void {
 
 auto Editor_Open_File(Editor* editor, String filename) -> void {
     editor->active_file = editor->arena.Interface().DupeString(filename);
-    auto file_contents  = Read_All_From_File_As_String(editor->base_allocator, editor->active_file);
-    printf("Waow!\n");
+    auto file_contents  = Read_All_From_File_As_String(editor->arena.Interface(), editor->active_file);
     Append_Slice(editor->base_allocator, editor->buffer, file_contents.Slice());
     Editor_Reindex(editor);
 }

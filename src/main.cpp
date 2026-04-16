@@ -50,7 +50,7 @@ auto main(int argc, char* argv[]) -> int {
     defer(Destroy_Fonts());
 
     editor = Create_Editor(allocator, monospace_font);
-    Destroy_Editor(&editor);
+    defer(Destroy_Editor(&editor));
 
     printf("argv: ");
     for (int i = 0; i < argc; i++) {
