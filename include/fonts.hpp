@@ -12,7 +12,6 @@ struct Glyph_Metric {
     Rect rect;
     Vec2 bearing;
     i32  advance;
-    i32  bbox_ymax;
 };
 
 struct Font_Metrics {
@@ -25,9 +24,9 @@ struct Font_Metrics {
 
 extern Font* monospace_font;
 extern Font* regular_font;
-extern Font* monospace2_font;
-extern Font* monospace3_font;
-extern Font* monospace4_font;
+// extern Font* monospace2_font;
+// extern Font* monospace3_font;
+// extern Font* monospace4_font;
 
 auto Init_Fonts(Allocator allocator) -> void;
 

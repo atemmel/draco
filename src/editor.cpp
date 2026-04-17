@@ -181,7 +181,7 @@ static auto Editor_Reindex_Virtual_Lines(Editor* editor) -> void {
                 continue;
             }
             i             = min(i + 1, line_slice.size);
-            auto word     = line_slice.slice(word_begin, i);
+            auto word     = line_slice.slice(min(word_begin, i), max(word_begin, i));
             auto word_dim = Calculate_Text_Dimensions_With_Font(editor->font, word);
             if (word_dim.x + x > max_width) {
                 Append(editor->base_allocator, editor->virtual_lines, {virtual_line_begin, i - 1});

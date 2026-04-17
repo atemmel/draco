@@ -61,24 +61,24 @@ Font* monospace4_font;
 auto Init_Fonts(Allocator allocator) -> void {
     assert(!FT_Init_FreeType(&ft_library));
 
-    monospace_font  = Create_Font_From_Bytes(allocator, renderer, monospace_font_bytes, sizeof(monospace_font_bytes), 24);
-    regular_font    = Create_Font_From_Bytes(allocator, renderer, regular_bold_italic_font_bytes, sizeof(regular_bold_italic_font_bytes), 24);
-    monospace2_font = Create_Font_From_Bytes(allocator, renderer, monospace2_font_bytes, sizeof(monospace2_font_bytes), 24);
-    monospace3_font = Create_Font_From_Bytes(allocator, renderer, monospace3_font_bytes, sizeof(monospace3_font_bytes), 24);
-    monospace4_font = Create_Font_From_Bytes(allocator, renderer, regular_bold_italic_font_bytes, sizeof(regular_bold_italic_font_bytes), 24);
+    monospace_font = Create_Font_From_Bytes(allocator, renderer, monospace_font_bytes, sizeof(monospace_font_bytes), 24);
+    regular_font   = Create_Font_From_Bytes(allocator, renderer, regular_bold_italic_font_bytes, sizeof(regular_bold_italic_font_bytes), 24);
+    // monospace2_font = Create_Font_From_Bytes(allocator, renderer, monospace2_font_bytes, sizeof(monospace2_font_bytes), 24);
+    // monospace3_font = Create_Font_From_Bytes(allocator, renderer, monospace3_font_bytes, sizeof(monospace3_font_bytes), 24);
+    // monospace4_font = Create_Font_From_Bytes(allocator, renderer, regular_bold_italic_font_bytes, sizeof(regular_bold_italic_font_bytes), 24);
     assert(monospace_font);
     assert(regular_font);
-    assert(monospace2_font);
-    assert(monospace3_font);
-    assert(monospace4_font);
+    // assert(monospace2_font);
+    // assert(monospace3_font);
+    // assert(monospace4_font);
 }
 
 auto Destroy_Fonts() -> void {
     Destroy_Font(monospace_font);
     Destroy_Font(regular_font);
-    Destroy_Font(monospace2_font);
-    Destroy_Font(monospace3_font);
-    Destroy_Font(monospace4_font);
+    // Destroy_Font(monospace2_font);
+    // Destroy_Font(monospace3_font);
+    // Destroy_Font(monospace4_font);
 }
 
 auto Create_Font_From_Bytes(Allocator allocator, Renderer renderer, const u8* bytes, usize byte_count, u32 font_size) -> Font* {
@@ -153,7 +153,7 @@ static auto Render_Char(const Font* font, u32 ch, u32 previous_ch, Vec2 position
         SDL_Color color;
 
         dstrect.x = position.x;
-        dstrect.y = position.y - metrics->bearing.y + font->font_metrics.height;
+        dstrect.y = position.y - metrics->bearing.y + font->font_metrics.height - f32((font->ft_face->ascender >> 6) + (font->ft_face->descender >> 6));
         dstrect.w = metrics->rect.w;
         dstrect.h = metrics->rect.h;
 
@@ -204,12 +204,11 @@ auto Set_Glyph_Metrics_Of_Font(Font* font, usize index, i32 x, i32 y) -> void {
     font->glyph_metrics[index].bearing.x = font->ft_face->glyph->metrics.horiBearingX >> 6;
     font->glyph_metrics[index].bearing.y = font->ft_face->glyph->metrics.horiBearingY >> 6;
     font->glyph_metrics[index].advance   = font->ft_face->glyph->metrics.horiAdvance >> 6;
-    font->glyph_metrics[index].bbox_ymax = font->ft_face->bbox.yMax >> 6;
     if (font->font_metrics.max_glyph_width < font->glyph_metrics[index].rect.w) {
         font->font_metrics.max_glyph_width = font->glyph_metrics[index].rect.w;
     }
-    if (font->font_metrics.max_glyph_height < font->glyph_metrics[index].bbox_ymax) {
-        font->font_metrics.max_glyph_height = font->glyph_metrics[index].bbox_ymax;
+    if (font->font_metrics.max_glyph_height < font->glyph_metrics[index].rect.h) {
+        font->font_metrics.max_glyph_height = font->glyph_metrics[index].rect.h;
     }
     if (font->font_metrics.max_glyph_advance < font->glyph_metrics[index].advance) {
         font->font_metrics.max_glyph_advance = font->glyph_metrics[index].advance;
@@ -275,7 +274,7 @@ auto Calculate_Text_Dimensions_With_Font(const Font* font, Slice<u8> text_as_str
     u32       previous_ch = 0;
     const u8* text        = text_as_string.data;
     u8*       end_of_text = text_as_string.data + text_as_string.size;
-    Vec2      area        = {0.f, f32(font->font_metrics.height)};
+    Vec2      area        = {0.f, f32(font->font_metrics.height + f32(font->ft_face->descender >> 6))};
 
     for (; text < end_of_text; text++) {
         u32  ch      = Utf8_Decode(text, &text);

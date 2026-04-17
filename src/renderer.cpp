@@ -72,6 +72,11 @@ auto Renderer_Draw_Rect(Rect rect) -> void {
     SDL_RenderFillRect(renderer, &r);
 }
 
+auto Renderer_Draw_Outline(Rect rect) -> void {
+    auto r = SDL_FRect(rect);
+    SDL_RenderRect(renderer, &r);
+}
+
 auto Renderer_Clear(Vec4 color) -> void {
     Renderer_Set_Color(color);
     SDL_RenderClear(renderer);

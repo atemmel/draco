@@ -1,6 +1,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_init.h>
+#include <SDL3/SDL_rect.h>
 #include <SDL3/SDL_render.h>
 #include <SDL3/SDL_timer.h>
 
@@ -179,8 +180,6 @@ auto draw(f32 dt) -> void {
                 Renderer_Set_Color(FG);
                 Render_Text(font, line_no_str, line_no_offset_x - line_no_dim.x, y);
             }
-            auto r = Rect{0.f, y, 200.f, 2.f};
-            Renderer_Draw_Rect(r);
         }
 
         Renderer_Set_Color(FG);
@@ -197,6 +196,9 @@ auto draw(f32 dt) -> void {
 
     Renderer_Set_Color(FG);
     Renderer_Draw_Rect(rect);
+
+    Rect editor_outline = {offset_x, offset_y, 500.f, 500.f};
+    Renderer_Draw_Outline(editor_outline);
     /*
     rend.drawWindowDecoration(gui);
     */
