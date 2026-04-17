@@ -1,6 +1,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_init.h>
+#include <SDL3/SDL_keyboard.h>
 #include <SDL3/SDL_rect.h>
 #include <SDL3/SDL_render.h>
 #include <SDL3/SDL_timer.h>
@@ -65,6 +66,8 @@ auto main(int argc, char* argv[]) -> int {
         Editor_Open_Source(&editor, ""_s);
     }
 
+    SDL_StartTextInput(window);
+
     loop();
     return 0;
 }
@@ -84,6 +87,7 @@ auto loop() -> void {
         defer(last_tick = current_tick;);
         const auto dt = f32(SDL_NS_TO_SECONDS(current_tick) - SDL_NS_TO_SECONDS(last_tick));
 
+        auto did_input = false;
         while (SDL_PollEvent(&event)) {
             switch (event.type) {
                 case SDL_EVENT_QUIT:
@@ -96,28 +100,23 @@ auto loop() -> void {
                             break;
                     }
                     break;
+                case SDL_EVENT_TEXT_INPUT:
+                    if (ctrl_down) continue;
+                    did_input = true;
+                    Editor_Insert_Text(&editor, As_String(event.text.text));
+                    break;
             }
         }
 
         if (!running) break;
 
-        /*
-        SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255);
-        SDL_RenderClear(renderer);
+        defer(Sleep_Until_Next_Frame());
 
-        auto str = "gaming->man + 50 * My_Func() {} [0]"_s;
-
-        Font_Correctness_Test(monospace_font, str, 0.f);
-        Font_Correctness_Test(monospace2_font, str, 1.f);
-        Font_Correctness_Test(monospace3_font, str, 3.f);
-        Font_Correctness_Test(monospace4_font, str, 2.f);
-
-        SDL_RenderPresent(renderer);
-        */
+        if (!animating && !did_input && last_tick > 0 /* !input.state.window_changed_somehow*/) {
+            continue;
+        }
 
         draw(dt);
-
-        Sleep_Until_Next_Frame();
     } while (true);
 };
 

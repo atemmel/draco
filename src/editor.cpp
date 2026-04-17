@@ -7,11 +7,13 @@
 #include "mem.hpp"
 #include "strings.hpp"
 #include "types.hpp"
+#include "utf8.hpp"
 
 // Internal
 static auto Editor_Reindex(Editor* editor) -> void;
 static auto Editor_Reindex_Real_Lines(Editor* editor) -> void;
 static auto Editor_Reindex_Virtual_Lines(Editor* editor) -> void;
+static auto Editor_Codepoints_Left_Of_Cursor(Editor* editor) -> usize;
 
 auto Create_Editor(Allocator base_allocator, Font* font) -> Editor {
     auto arena         = Create_Arena_Allocator(base_allocator);
@@ -69,6 +71,10 @@ auto Editor_Save(Editor* editor) -> void {
 }
 
 auto Editor_Insert_Text(Editor* editor, String content) -> void {
+    Append_Slice(editor->base_allocator, editor->buffer, content.Slice());
+    editor->cursor += content.size;
+    Editor_Reindex(editor);
+    editor->rightmost_cursor_codepoint = Editor_Codepoints_Left_Of_Cursor(editor);
 }
 
 auto Editor_Insert_Newline(Editor* editor) -> void {
@@ -211,4 +217,12 @@ static auto Editor_Reindex_Virtual_Lines(Editor* editor) -> void {
         auto virtual_line_slice_end      = editor->virtual_lines.size;
         editor->lines[idx].virtual_lines = {virtual_line_slice_begin, virtual_line_slice_end};
     }
+}
+
+static auto Editor_Codepoints_Left_Of_Cursor(Editor* editor) -> usize {
+    auto pos    = Editor_Virtual_Cursor_Position(editor);
+    auto line   = editor->virtual_lines[pos.row];
+    auto slice  = editor->buffer.slice(line.begin, min(editor->buffer.size, editor->cursor));
+    auto length = Utf8_Length(slice);
+    return length != -1 ? length : editor->cursor - line.begin;
 }
