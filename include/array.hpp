@@ -126,7 +126,43 @@ auto Insert(Allocator allocator, Array<T>& array, const T& value, usize idx) -> 
 
     auto insertion_point = array.data + idx;
     memmove(insertion_point + 1, insertion_point, sizeof(T) * (array.size - insertion_point));
-    array.data[array.size++] = value;
+    array.data[idx] = value;
+    array.size++;
+}
+
+template <typename T>
+auto Insert_Slice(Allocator allocator, Array<T>& array, Slice<T> slice, usize idx) -> Array<T> {
+    if (!slice.size) {
+        return array;
+    }
+
+    if (array.size + slice.size < array.capacity) {
+        auto insert_slice_begin = array.data + idx;
+        auto insert_slice_end   = insert_slice_begin + slice.size;
+        memmove(insert_slice_end, insert_slice_begin, sizeof(T) * (array.size - idx));
+        memcpy(insert_slice_begin, slice.data, sizeof(T) * slice.size);
+        array.size += slice.size;
+        return array;
+    }
+
+    // new array
+    usize new_capacity = (array.capacity + slice.size) * 2;
+    auto  new_data     = allocator.Alloc<T>(new_capacity);
+    auto  new_size     = array.size + slice.size;
+    memcpy(new_data, array.data, sizeof(T) * idx);
+    memcpy(new_data + idx, slice.data, sizeof(T) * slice.size);
+    memcpy(new_data + idx + slice.size, array.data + idx, sizeof(T) * (array.size - idx));
+
+    // destroy old array
+    allocator.Free(array.data);
+
+    array = {
+        .data     = new_data,
+        .size     = new_size,
+        .capacity = new_capacity,
+    };
+
+    return array;
 }
 
 template <typename T>

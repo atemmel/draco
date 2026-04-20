@@ -18,7 +18,7 @@ auto Allocator::DupeString(String string) -> String {
     ptr[string.size] = 0;
     return {
         .data = ptr,
-        .size = string.size - 1,
+        .size = string.size,
     };
 }
 

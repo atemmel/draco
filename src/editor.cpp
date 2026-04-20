@@ -14,6 +14,7 @@ static auto Editor_Reindex(Editor* editor) -> void;
 static auto Editor_Reindex_Real_Lines(Editor* editor) -> void;
 static auto Editor_Reindex_Virtual_Lines(Editor* editor) -> void;
 static auto Editor_Codepoints_Left_Of_Cursor(Editor* editor) -> usize;
+static auto Editor_Bytes_Until_Nearest_Codepoint_Left(Editor* editor) -> usize;
 
 auto Create_Editor(Allocator base_allocator, Font* font) -> Editor {
     auto arena         = Create_Arena_Allocator(base_allocator);
@@ -71,7 +72,7 @@ auto Editor_Save(Editor* editor) -> void {
 }
 
 auto Editor_Insert_Text(Editor* editor, String content) -> void {
-    Append_Slice(editor->base_allocator, editor->buffer, content.Slice());
+    Insert_Slice(editor->base_allocator, editor->buffer, content.Slice(), editor->cursor);
     editor->cursor += content.size;
     Editor_Reindex(editor);
     editor->rightmost_cursor_codepoint = Editor_Codepoints_Left_Of_Cursor(editor);
@@ -81,6 +82,13 @@ auto Editor_Insert_Newline(Editor* editor) -> void {
 }
 
 auto Editor_Left(Editor* editor) -> void {
+    if (editor->cursor <= 0) {
+        return;
+    }
+
+    auto n = Editor_Bytes_Until_Nearest_Codepoint_Left(editor);
+    editor->cursor -= n;
+    editor->rightmost_cursor_codepoint = Editor_Codepoints_Left_Of_Cursor(editor);
 }
 
 auto Editor_Right(Editor* editor) -> void {
@@ -225,4 +233,26 @@ static auto Editor_Codepoints_Left_Of_Cursor(Editor* editor) -> usize {
     auto slice  = editor->buffer.slice(line.begin, min(editor->buffer.size, editor->cursor));
     auto length = Utf8_Length(slice);
     return length != -1 ? length : editor->cursor - line.begin;
+}
+
+const static u8 utf_1_mask = 0b10000000;
+const static u8 utf_2_mask = 0b11000000;
+const static u8 utf_3_mask = 0b11100000;
+const static u8 utf_4_mask = 0b11110000;
+
+static auto Editor_Bytes_Until_Nearest_Codepoint_Left(Editor* editor) -> usize {
+    if (editor->cursor < 1) {
+        return 0;
+    }
+    auto offset = editor->cursor + 1 >= editor->buffer.size ? 1 : 0;
+    if (editor->cursor < 2 || (editor->buffer[editor->cursor - 1 - offset] & utf_1_mask) == 0) {
+        return 1;
+    }
+    if (editor->cursor < 3 || (editor->buffer[editor->cursor - 2 - offset] & utf_2_mask) == 0) {
+        return 2;
+    }
+    if (editor->cursor < 4 || editor->buffer[editor->cursor - 3 - offset] & utf_3_mask) {
+        return 3;
+    }
+    return 4;
 }

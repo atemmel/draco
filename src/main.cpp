@@ -10,6 +10,7 @@
 #include <cmath>
 #include <cstdio>
 
+#include "array.hpp"
 #include "defer.hpp"
 #include "editor.hpp"
 #include "fonts.hpp"
@@ -85,7 +86,7 @@ auto loop() -> void {
     do {
         auto current_tick = SDL_GetTicksNS();
         defer(last_tick = current_tick;);
-        const auto dt = f32(SDL_NS_TO_SECONDS(current_tick) - SDL_NS_TO_SECONDS(last_tick));
+        const auto dt = SDL_NS_TO_SECONDS(f32(current_tick)) - SDL_NS_TO_SECONDS(f32(last_tick));
 
         auto did_input = false;
         while (SDL_PollEvent(&event)) {
@@ -94,9 +95,14 @@ auto loop() -> void {
                     running = false;
                     break;
                 case SDL_EVENT_KEY_DOWN:
+                    did_input = true;
+                    ctrl_down = event.key.mod & SDL_KMOD_CTRL;
                     switch (event.key.key) {
                         case SDLK_ESCAPE:
                             running = false;
+                            break;
+                        case SDLK_LEFT:
+                            Editor_Left(&editor);
                             break;
                     }
                     break;
