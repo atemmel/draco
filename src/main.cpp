@@ -19,10 +19,8 @@
 #include "renderer.hpp"
 #include "strings.hpp"
 
-const auto BG = Vec4{0.137, 0.137, 0.176, 1.0};
-
-const auto FG = Vec4{1.0, 1.0, 1.0, 1.0};
-
+const auto BG   = Vec4{0.137, 0.137, 0.176, 1.0};
+const auto FG   = Vec4{1.0, 1.0, 1.0, 1.0};
 const auto FG_2 = Vec4{0.5, 0.5, 0.5, 1.0};
 
 auto loop() -> void;
