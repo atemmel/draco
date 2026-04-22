@@ -121,11 +121,11 @@ auto Append_Slice(Allocator allocator, Array<T>& array, Slice<T> slice) -> Array
 }
 
 template <typename T>
-auto Insert(Allocator allocator, Array<T>& array, const T& value, usize idx) -> void {
+auto Insert(Allocator allocator, Array<T>& array, usize idx, const T& value) -> void {
     Append(allocator, array, {});
 
     auto insertion_point = array.data + idx;
-    memmove(insertion_point + 1, insertion_point, sizeof(T) * (array.size - insertion_point));
+    memmove(insertion_point + 1, insertion_point, sizeof(T) * (array.size - idx));
     array.data[idx] = value;
     array.size++;
 }

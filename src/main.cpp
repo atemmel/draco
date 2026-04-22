@@ -99,8 +99,20 @@ auto loop() -> void {
                         case SDLK_ESCAPE:
                             running = false;
                             break;
+                        case SDLK_RETURN:
+                            Editor_Insert_Newline(&editor);
+                            break;
                         case SDLK_LEFT:
                             Editor_Left(&editor);
+                            break;
+                        case SDLK_RIGHT:
+                            Editor_Right(&editor);
+                            break;
+                        case SDLK_UP:
+                            Editor_Up(&editor);
+                            break;
+                        case SDLK_DOWN:
+                            Editor_Down(&editor);
                             break;
                     }
                     break;

@@ -15,6 +15,7 @@ static auto Editor_Reindex_Real_Lines(Editor* editor) -> void;
 static auto Editor_Reindex_Virtual_Lines(Editor* editor) -> void;
 static auto Editor_Codepoints_Left_Of_Cursor(Editor* editor) -> usize;
 static auto Editor_Bytes_Until_Nearest_Codepoint_Left(Editor* editor) -> usize;
+static auto Editor_Bytes_Until_Nearest_Codepoint_Right(Editor* editor) -> usize;
 
 auto Create_Editor(Allocator base_allocator, Font* font) -> Editor {
     auto arena         = Create_Arena_Allocator(base_allocator);
@@ -79,6 +80,14 @@ auto Editor_Insert_Text(Editor* editor, String content) -> void {
 }
 
 auto Editor_Insert_Newline(Editor* editor) -> void {
+    Insert(editor->base_allocator, editor->buffer, editor->cursor, u8('\n'));
+    Editor_Reindex(editor);
+    editor->cursor++;
+    auto pos = Editor_Virtual_Cursor_Position(editor);
+    if (pos.row >= editor->scroll_offset + editor->lines_on_screen) {
+        editor->scroll_offset += 1;
+    }
+    editor->rightmost_cursor_codepoint = Editor_Codepoints_Left_Of_Cursor(editor);
 }
 
 auto Editor_Left(Editor* editor) -> void {
@@ -92,6 +101,10 @@ auto Editor_Left(Editor* editor) -> void {
 }
 
 auto Editor_Right(Editor* editor) -> void {
+    if (editor->cursor >= editor->buffer.size) {
+        return;
+    }
+    auto n = Editor_Bytes_Until_Nearest_Codepoint_Right(editor);
 }
 
 auto Editor_Up(Editor* editor) -> void {
@@ -255,4 +268,18 @@ static auto Editor_Bytes_Until_Nearest_Codepoint_Left(Editor* editor) -> usize {
         return 3;
     }
     return 4;
+}
+
+static auto Editor_Bytes_Until_Nearest_Codepoint_Right(Editor* editor) -> usize {
+    auto last_byte_index = max(editor->buffer.size, usize(1)) - 1;
+    if (editor->cursor >= last_byte_index) {
+        return 0;
+    }
+
+    auto b = editor->buffer[editor->cursor];
+    if (b < 0x7F || editor->cursor + 1 == last_byte_index) {
+        return 1;
+    }
+
+    // TODO: the rest
 }
