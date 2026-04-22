@@ -71,12 +71,11 @@ auto main(int argc, char* argv[]) -> int {
     return 0;
 }
 
-bool animating   = false;
-i64  last_tick   = 0;
-Vec2 was_pos     = {-1.f, -1.f};
-f32  was_scroll  = 0.f;
-f32  zoom_scalar = 1.f;
-bool ctrl_down   = false;
+bool animating  = false;
+i64  last_tick  = 0;
+Vec2 was_pos    = {-1.f, -1.f};
+f32  was_scroll = 0.f;
+bool ctrl_down  = false;
 
 auto loop() -> void {
     auto      running = true;
@@ -113,6 +112,16 @@ auto loop() -> void {
                             break;
                         case SDLK_DOWN:
                             Editor_Down(&editor);
+                            break;
+                        case SDLK_PLUS:
+                            if (ctrl_down) {
+                                Renderer_Zoom_Delta(0.1f);
+                            }
+                            break;
+                        case SDLK_MINUS:
+                            if (ctrl_down) {
+                                Renderer_Zoom_Delta(-0.1f);
+                            }
                             break;
                     }
                     break;
@@ -177,8 +186,8 @@ auto draw(f32 dt) -> void {
     auto rect = Rect{
         .x = was_pos.x,
         .y = was_pos.y,
-        .w = 2.f * zoom_scalar,
-        .h = f32(Font_Size(font)) * zoom_scalar,
+        .w = 2.f,
+        .h = f32(Font_Size(font)),
     };
 
     Renderer_Clear(BG);

@@ -16,6 +16,7 @@ static auto Editor_Reindex_Virtual_Lines(Editor* editor) -> void;
 static auto Editor_Codepoints_Left_Of_Cursor(Editor* editor) -> usize;
 static auto Editor_Bytes_Until_Nearest_Codepoint_Left(Editor* editor) -> usize;
 static auto Editor_Bytes_Until_Nearest_Codepoint_Right(Editor* editor) -> usize;
+static auto Editor_Byte_Of_Nth_Codepoint_Of_Virtual_Line(Editor* editor, Virtual_Line line, usize n) -> usize;
 
 auto Create_Editor(Allocator base_allocator, Font* font) -> Editor {
     auto arena         = Create_Arena_Allocator(base_allocator);
@@ -105,12 +106,39 @@ auto Editor_Right(Editor* editor) -> void {
         return;
     }
     auto n = Editor_Bytes_Until_Nearest_Codepoint_Right(editor);
+    editor->cursor += n;
+    editor->rightmost_cursor_codepoint = Editor_Codepoints_Left_Of_Cursor(editor);
 }
 
 auto Editor_Up(Editor* editor) -> void {
+    auto pos = Editor_Virtual_Cursor_Position(editor);
+    if (pos.row <= 0) {
+        return;
+    }
+    auto line      = editor->virtual_lines[pos.row - 1];
+    auto offset    = Editor_Byte_Of_Nth_Codepoint_Of_Virtual_Line(editor, line, editor->rightmost_cursor_codepoint);
+    editor->cursor = min(line.begin + offset, line.end);
+
+    if (pos.row < editor->scroll_offset) {
+        editor->scroll_offset--;
+    }
 }
 
 auto Editor_Down(Editor* editor) -> void {
+    auto pos = Editor_Virtual_Cursor_Position(editor);
+    if (pos.row + 2 >= editor->scroll_offset + editor->lines_on_screen) {
+        editor->scroll_offset += 1;
+    }
+    if (pos.row + 1 >= editor->virtual_lines.size) {
+        return;
+    }
+    auto line      = editor->virtual_lines[pos.row + 1];
+    auto offset    = Editor_Byte_Of_Nth_Codepoint_Of_Virtual_Line(editor, line, editor->rightmost_cursor_codepoint);
+    editor->cursor = min(line.begin + offset, line.end);
+
+    if (pos.row < editor->scroll_offset) {
+        editor->scroll_offset--;
+    }
 }
 
 auto Editor_Beginning_Of_Line(Editor* editor) -> void {
@@ -261,7 +289,7 @@ static auto Editor_Bytes_Until_Nearest_Codepoint_Left(Editor* editor) -> usize {
     if (editor->cursor < 2 || (editor->buffer[editor->cursor - 1 - offset] & utf_1_mask) == 0) {
         return 1;
     }
-    if (editor->cursor < 3 || (editor->buffer[editor->cursor - 2 - offset] & utf_2_mask) == 0) {
+    if (editor->cursor < 3 || editor->buffer[editor->cursor - 2 - offset] & utf_2_mask) {
         return 2;
     }
     if (editor->cursor < 4 || editor->buffer[editor->cursor - 3 - offset] & utf_3_mask) {
@@ -272,14 +300,36 @@ static auto Editor_Bytes_Until_Nearest_Codepoint_Left(Editor* editor) -> usize {
 
 static auto Editor_Bytes_Until_Nearest_Codepoint_Right(Editor* editor) -> usize {
     auto last_byte_index = max(editor->buffer.size, usize(1)) - 1;
-    if (editor->cursor >= last_byte_index) {
+    // cursor can be at buffer.size, that's fine
+    if (editor->cursor >= last_byte_index + 1) {
         return 0;
     }
 
     auto b = editor->buffer[editor->cursor];
-    if (b < 0x7F || editor->cursor + 1 == last_byte_index) {
+    if (b <= 0x7F || editor->cursor + 1 == last_byte_index) {
         return 1;
     }
+    if ((utf_2_mask & b) != 0 || editor->cursor + 2 == last_byte_index) {
+        return 2;
+    }
+    if ((utf_3_mask & b) != 0 || editor->cursor + 3 == last_byte_index) {
+        return 3;
+    }
+    return 4;
+}
 
-    // TODO: the rest
+static auto Editor_Byte_Of_Nth_Codepoint_Of_Virtual_Line(Editor* editor, Virtual_Line line, usize n) -> usize {
+    auto slice = editor->buffer.slice(line.begin, line.end);
+
+    usize i = 0;
+
+    for (usize codepoints = 0; i < slice.size && codepoints < n; ++codepoints) {
+        if (auto c = Utf8_Length(slice[i]); i != -1) {
+            i += c;
+        } else {
+            break;
+        }
+    }
+
+    return i;
 }

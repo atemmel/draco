@@ -1,5 +1,6 @@
 #include "renderer.hpp"
 
+#include <SDL3/SDL_oldnames.h>
 #include <SDL3/SDL_render.h>
 #include <SDL3/SDL_video.h>
 #include <unistd.h>
@@ -7,6 +8,7 @@
 #include <cassert>
 #include <cstdio>
 
+#include "fonts.hpp"
 #include "types.hpp"
 
 const auto PROG_NAME = "draco";
@@ -16,6 +18,8 @@ const auto H         = 800;
 u64      refresh_rate_ns;
 Renderer renderer;
 Window   window;
+
+f32 zoom = 1.f;
 
 auto Set_Refresh_Rate(f32 display_fps) -> void {
     refresh_rate_ns = (1000 * 1000) / display_fps;
@@ -69,12 +73,18 @@ auto Renderer_Set_Color(Vec4 color) -> void {
 
 auto Renderer_Draw_Rect(Rect rect) -> void {
     auto r = SDL_FRect(rect);
+
     SDL_RenderFillRect(renderer, &r);
 }
 
 auto Renderer_Draw_Outline(Rect rect) -> void {
     auto r = SDL_FRect(rect);
     SDL_RenderRect(renderer, &r);
+}
+
+auto Renderer_Zoom_Delta(f32 f) -> void {
+    zoom += f;
+    Scale_Font(monospace_font, zoom);
 }
 
 auto Renderer_Clear(Vec4 color) -> void {

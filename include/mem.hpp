@@ -17,7 +17,10 @@ struct Allocator {
 
     template <typename T>
     auto Alloc(usize count) -> T* {
-        return (T*)alloc(context, sizeof(T) * count);
+        auto size = sizeof(T*) * count;
+        auto ptr  = (T*)alloc(context, size);
+        memset(ptr, 0, size);
+        return ptr;
     }
 
     template <typename T>
