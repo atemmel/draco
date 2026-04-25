@@ -77,10 +77,10 @@ auto Square(f32 x) -> f32 {
     return x * x;
 }
 
-auto Lerp(f32 to, f32 from, f32 t) -> f32 {
-    return (1.0 - t) * from + t * to;
+auto Lerp(f32 t, f32 v0, f32 v1) -> f32 {
+    return (1.f - t) * v0 + t * v1;
 }
 
-auto Damp(f32 to, f32 from, f32 smoothing, f32 dt) -> f32 {
-    return Lerp(to, from, 1.0 - powf(smoothing, dt));
+auto Damp(f32 v0, f32 v1, f32 smoothing, f32 dt) -> f32 {
+    return Lerp(1.f - powf(smoothing, dt), v0, v1);
 }

@@ -37,12 +37,14 @@ auto Create_Font_From_Bytes(Allocator allocator, Renderer renderer, const u8* by
 auto Destroy_Font(Font* font) -> void;
 
 auto Font_Size(const Font* font) -> f32;
+auto Font_Resize(Font* font, u32 ptsize) -> void;
+auto Font_Scale(Font* font, f32 scale) -> void;
 
-auto Render_Text(const Font* font, String text, f32 x, f32 y, f32 scale) -> void;
+auto Render_Text(const Font* font, String text, f32 x, f32 y) -> void;
 
-auto Render_Text(const Font* font, const u8* text, u32 length, f32 x, f32 y, f32 scale) -> void;
-
-auto Render_Font_Atlas(const Font* font, Vec2 pt) -> void;
+auto Render_Text(const Font* font, const u8* text, u32 length, f32 x, f32 y) -> void;
 
 auto Calculate_Text_Dimensions_With_Font(const Font* font, Slice<u8> text) -> Vec2;
 auto Calculate_Text_Dimensions_With_Font(const Font* font, String text) -> Vec2;
+
+auto Dump_Font_Information_For_Debugging(const Font* font) -> void;

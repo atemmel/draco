@@ -239,10 +239,10 @@ static auto Editor_Reindex_Virtual_Lines(Editor* editor) -> void {
         auto       line_slice               = editor->buffer.slice(0, line.end);
         auto       virtual_line_begin       = line.begin;
         auto       word_begin               = line.begin;
-        usize      i                        = 0;
+        usize      i                        = line.begin;
         f32        x                        = 0;
 
-        for (; i < line_slice.size; i += 1) {
+        for (; i < line_slice.size; ++i) {
             if (line_slice[i] != ' ') {
                 continue;
             }

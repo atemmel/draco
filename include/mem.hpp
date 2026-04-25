@@ -17,7 +17,8 @@ struct Allocator {
 
     template <typename T>
     auto Alloc(usize count) -> T* {
-        auto size = sizeof(T*) * count;
+        if (count == 0) return null;
+        auto size = sizeof(T) * count;
         auto ptr  = (T*)alloc(context, size);
         memset(ptr, 0, size);
         return ptr;
@@ -25,12 +26,12 @@ struct Allocator {
 
     template <typename T>
     auto Create() -> T* {
-        return (T*)alloc(context, sizeof(T));
+        return Alloc<T>(1);
     }
 
     template <typename T>
     auto Free(const T* ptr) -> void {
-        free(context, (void*)ptr);
+        if (ptr) free(context, (void*)ptr);
     }
 
     template <typename T>
@@ -44,6 +45,9 @@ struct Allocator {
     }
 
     auto DupeString(String string) -> String;
+
+    // Allocates according to format. Provides null terminator
+    auto AllocPrint(const char* __restrict fmt, ...) -> String;
 };
 
 struct Tracing_Allocator {

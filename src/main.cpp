@@ -83,7 +83,7 @@ auto loop() -> void {
     do {
         auto current_tick = SDL_GetTicksNS();
         defer(last_tick = current_tick;);
-        const auto dt = SDL_NS_TO_SECONDS(f32(current_tick)) - SDL_NS_TO_SECONDS(f32(last_tick));
+        const auto dt = SDL_NS_TO_SECONDS(f32(current_tick - last_tick));
 
         auto did_input = false;
         while (SDL_PollEvent(&event)) {
@@ -119,12 +119,17 @@ auto loop() -> void {
                         case SDLK_PLUS:
                             if (ctrl_down) {
                                 Renderer_Zoom_Delta(0.1f);
+                                Font_Scale(monospace_font, Renderer_Zoom_Current());
                             }
                             break;
                         case SDLK_MINUS:
                             if (ctrl_down) {
                                 Renderer_Zoom_Delta(-0.1f);
+                                Font_Scale(monospace_font, Renderer_Zoom_Current());
                             }
+                            break;
+                        case SDLK_F2:
+                            Dump_Font_Information_For_Debugging(monospace_font);
                             break;
                     }
                     break;
@@ -132,6 +137,9 @@ auto loop() -> void {
                     if (ctrl_down) continue;
                     did_input = true;
                     Editor_Insert_Text(&editor, As_String(event.text.text));
+
+                    fprintf(stderr, "DEBUG: %s\n", editor.buffer.data);
+
                     break;
             }
         }
@@ -140,7 +148,12 @@ auto loop() -> void {
 
         defer(Sleep_Until_Next_Frame());
 
-        if (!animating && !did_input && last_tick > 0 /* !input.state.window_changed_somehow*/) {
+        if (last_tick == 0.f) {
+            draw(dt);
+            continue;
+        }
+
+        if (!animating && !did_input /* !input.state.window_changed_somehow*/) {
             continue;
         }
 
@@ -163,7 +176,7 @@ auto draw(f32 dt) -> void {
     auto dim         = Calculate_Text_Dimensions_With_Font(font, cursor_data.text_left_of_cursor);
     Vec2 is_pos      = {
         .x = offset_x + dim.x,
-        .y = offset_y + line_height * (cursor_data.virtual_row - f32(editor.scroll_offset)),
+        .y = offset_y + line_height * (f32(cursor_data.virtual_row) - f32(editor.scroll_offset)),
     };
     auto is_scroll = f32(editor.scroll_offset) * line_height;
 
@@ -182,20 +195,23 @@ auto draw(f32 dt) -> void {
     const auto dampning = 0.001f;
     const auto dt_mult  = 2.f;
 
-    was_pos = {Damp(is_pos.x, was_pos.x, dampning, dt * dt_mult), Damp(is_pos.y, was_pos.y, dampning, dt * dt_mult)};
+    was_pos = {
+        Damp(was_pos.x, is_pos.x, dampning, dt * dt_mult),
+        Damp(was_pos.y, is_pos.y, dampning, dt * dt_mult),
+    };
 
-    was_scroll = Damp(is_scroll, was_scroll, dampning, dt * dt_mult);
+    was_scroll = Damp(was_scroll, is_scroll, dampning, dt * dt_mult);
 
     auto rect = Rect{
         .x = was_pos.x,
         .y = was_pos.y,
         .w = 2.f,
-        .h = f32(Font_Size(font)) * Renderer_Zoom_Current(),
+        .h = f32(Font_Size(font)),
     };
 
     Renderer_Clear(BG);
     Renderer_Set_Color(FG);
-    Render_Text(regular_font, "Title q8^)"_s, 100.f, 100.f, Renderer_Zoom_Current());
+    Render_Text(regular_font, "Title q8^)"_s, 100.f, 100.f);
 
     i64 n_virtual_line = 0;
     for (usize idx = 0; idx < editor.lines.size; idx++) {
@@ -205,7 +221,7 @@ auto draw(f32 dt) -> void {
             auto line_no_dim = Calculate_Text_Dimensions_With_Font(font, line_no_str);
             if (ceilf(y) >= offset_y) {
                 Renderer_Set_Color(FG);
-                Render_Text(font, line_no_str, line_no_offset_x - line_no_dim.x, y, Renderer_Zoom_Current());
+                Render_Text(font, line_no_str, line_no_offset_x - line_no_dim.x, y);
             }
         }
 
@@ -215,7 +231,7 @@ auto draw(f32 dt) -> void {
             auto slice = editor.buffer.slice(virtual_line.begin, virtual_line.end);
             f32  y     = offset_y + f32(n_virtual_line) * line_height - was_scroll;
             if (ceilf(y) >= offset_y) {
-                Render_Text(font, slice.data, slice.size, offset_x, y, Renderer_Zoom_Current());
+                Render_Text(font, slice.data, slice.size, offset_x, y);
             }
             n_virtual_line += 1;
         }
@@ -234,7 +250,7 @@ auto draw(f32 dt) -> void {
 
 auto Font_Correctness_Test(Font* font, String string, f32 f) -> void {
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    Render_Text(font, string, 0, 64.f * f, Renderer_Zoom_Current());
+    Render_Text(font, string, 0, 64.f * f);
     auto dim  = Calculate_Text_Dimensions_With_Font(font, string);
     auto rect = SDL_FRect{0.f, 64.f * f, dim.x, dim.y};
     SDL_RenderRect(renderer, &rect);

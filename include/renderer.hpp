@@ -7,6 +7,7 @@
 using Renderer = SDL_Renderer*;
 using Window   = SDL_Window*;
 using Texture  = SDL_Texture*;
+using Surface  = SDL_Surface*;
 
 extern Renderer renderer;
 extern Window   window;

@@ -47,5 +47,5 @@ auto operator*(Vec4 lhs, f32 scalar) -> Vec4;
 auto operator/(Vec4 lhs, f32 scalar) -> Vec4;
 
 auto Square(f32 x) -> f32;
-auto Lerp(f32 to, f32 from, f32 t) -> f32;
-auto Damp(f32 to, f32 from, f32 smoothing, f32 dt) -> f32;
+auto Lerp(f32 t, f32 v0, f32 v1) -> f32;
+auto Damp(f32 v0, f32 v1, f32 smoothing, f32 dt) -> f32;

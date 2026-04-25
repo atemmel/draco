@@ -1,6 +1,8 @@
 #include "mem.hpp"
 
 #include <cassert>
+#include <cstdarg>
+#include <cstdio>
 #include <cstdlib>
 
 #include "strings.hpp"
@@ -20,6 +22,19 @@ auto Allocator::DupeString(String string) -> String {
         .data = ptr,
         .size = string.size,
     };
+}
+
+auto Allocator::AllocPrint(const char* fmt, ...) -> String {
+    va_list args_1;
+    va_start(args_1, fmt);
+    va_list args_2;
+    va_copy(args_2, args_1);
+    usize required_len = vsnprintf(null, 0, fmt, args_1);
+    va_end(args_1);
+    auto ptr = this->Alloc<u8>(required_len + 1);
+    auto str = Sprintf(ptr, required_len, fmt, args_2);
+    va_end(args_2);
+    return str;
 }
 
 auto Default_Allocator_Alloc(void*, usize size) -> void* {
