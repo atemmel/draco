@@ -32,7 +32,6 @@ struct Font {
     Texture       atlas;
     bool          use_kerning;
     f32           render_scale;
-    f32           atlas_scale;
     Allocator     allocator;
 };
 
@@ -88,14 +87,13 @@ auto Create_Font_From_Bytes(Allocator allocator, Renderer renderer, const u8* by
     assert(font);
     font->renderer     = renderer;
     font->allocator    = allocator;
-    font->atlas_scale  = 2.f;
     font->render_scale = 1.f;
 
     assert(!FT_New_Memory_Face(ft_library, bytes, byte_count, 0, &font->ft_face));
-    assert(!FT_Set_Pixel_Sizes(font->ft_face, font_size * font->atlas_scale, font_size * font->atlas_scale));
+    assert(!FT_Set_Pixel_Sizes(font->ft_face, font_size, font_size));
 
     font->glyphs_of_atlas_side_count     = ceil(sqrt(font->ft_face->num_glyphs));
-    font->font_metrics.ptsize            = font_size * font->atlas_scale;
+    font->font_metrics.ptsize            = font_size;
     font->font_metrics.height            = font->ft_face->size->metrics.height >> 6;
     font->font_metrics.max_glyph_height  = INT_MIN;
     font->font_metrics.max_glyph_advance = INT_MIN;
@@ -120,15 +118,11 @@ auto Destroy_Font(Font* font) -> void {
 };
 
 auto Font_Size(const Font* font) -> f32 {
-    return f32(font->font_metrics.ptsize) * (font->render_scale / font->atlas_scale);
+    return f32(font->font_metrics.ptsize) * (font->render_scale);
 }
 
 auto Scale_Font(Font* font, f32 scale) -> void {
-    font->render_scale = min(font->atlas_scale, scale);
-}
-
-auto Font_Max_Scale(Font* font) -> f32 {
-    return font->atlas_scale;
+    font->render_scale = scale;
 }
 
 auto Query_Glyph_Metrics(const Font* font, Uint32 ch) -> const Glyph_Metric* {
@@ -158,25 +152,24 @@ auto Get_Kerning_Offset(const Font* font, Uint32 ch, Uint32 previous_ch) -> i32 
     return offset;
 }
 
-static auto Render_Char(const Font* font, u32 ch, u32 previous_ch, Vec2 position) -> u32 {
+static auto Render_Char(const Font* font, u32 ch, u32 previous_ch, Vec2 position, f32 scale) -> u32 {
     int  advance = 0;
     auto metrics = Query_Glyph_Metrics(font, ch);
-    auto scale   = font->render_scale / font->atlas_scale;
     if (metrics) {
         SDL_FRect dstrect, srcrect = metrics->rect;
         SDL_Color color;
 
         dstrect.x = position.x;
-        dstrect.y = position.y - (f32(metrics->bearing.y * scale)) + (f32(font->font_metrics.height * scale)) - f32((f32(font->ft_face->ascender >> 6) * scale) + (f32(font->ft_face->descender >> 6) * scale));
+        dstrect.y = position.y - (f32(metrics->bearing.y)) + (f32(font->font_metrics.height)) - f32((f32(font->ft_face->ascender >> 6)) + (f32(font->ft_face->descender >> 6)));
         dstrect.w = metrics->rect.w * scale;
         dstrect.h = metrics->rect.h * scale;
 
         if (previous_ch) {
-            advance += Get_Kerning_Offset(font, ch, previous_ch) * scale;
+            advance += Get_Kerning_Offset(font, ch, previous_ch);
         }
-        advance += metrics->advance * scale;
+        advance += metrics->advance;
 
-        f32 off_x = f32(advance - metrics->rect.w * scale) * 0.5f;
+        f32 off_x = f32(advance - metrics->rect.w) * 0.5f;
         dstrect.x += off_x;
 
         SDL_GetRenderDrawColor(font->renderer, &color.r, &color.g, &color.b, &color.a);
@@ -184,28 +177,27 @@ static auto Render_Char(const Font* font, u32 ch, u32 previous_ch, Vec2 position
         SDL_RenderTextureRotated(font->renderer, font->atlas, &srcrect, &dstrect, 0.0, null, SDL_FLIP_NONE);
     }
 
-    return advance;
+    return advance * scale;
 }
 
-auto Render_Text(const Font* font, String text, f32 x, f32 y) -> void {
-    Render_Text(font, text.data, text.size, x, y);
+auto Render_Text(const Font* font, String text, f32 x, f32 y, f32 scale) -> void {
+    Render_Text(font, text.data, text.size, x, y, scale);
 }
 
-auto Render_Text(const Font* font, const u8* text, u32 text_number_of_bytes, f32 x, f32 y) -> void {
+auto Render_Text(const Font* font, const u8* text, u32 text_number_of_bytes, f32 x, f32 y, f32 scale) -> void {
     Vec2 cursor      = {x, y};
     u32  previous_ch = 0;
     auto end_of_text = text + text_number_of_bytes;
-    auto scale       = font->render_scale / font->atlas_scale;
 
     for (; text < end_of_text; text++) {
         u32 ch = Utf8_Decode(text, &text);
         if (ch == '\n') {
             cursor.x = x;
-            cursor.y += font->font_metrics.height * scale;
+            cursor.y += font->font_metrics.height;
             previous_ch = 0;
             continue;
         } else {
-            cursor.x += Render_Char(font, ch, previous_ch, cursor);
+            cursor.x += Render_Char(font, ch, previous_ch, cursor, scale);
             previous_ch = ch;
         }
     }
@@ -231,7 +223,7 @@ auto Set_Glyph_Metrics_Of_Font(Font* font, usize index, i32 x, i32 y) -> void {
 }
 
 static auto Render_Font_To_Surface(Font* font) -> SDL_Surface* {
-    auto size_of_atlas_side = font->glyphs_of_atlas_side_count * font->font_metrics.ptsize * font->atlas_scale;
+    auto size_of_atlas_side = font->glyphs_of_atlas_side_count * font->font_metrics.ptsize;
     auto surface            = SDL_CreateSurface(size_of_atlas_side, size_of_atlas_side, SDL_PIXELFORMAT_RGBA32);
     assert(surface);
 
@@ -303,7 +295,7 @@ auto Calculate_Text_Dimensions_With_Font(const Font* font, Slice<u8> text_as_str
         previous_ch = ch;
     }
 
-    return area * (font->render_scale / font->atlas_scale);
+    return area * (font->render_scale);
 }
 
 auto Calculate_Text_Dimensions_With_Font(const Font* font, String text_as_string) -> Vec2 {

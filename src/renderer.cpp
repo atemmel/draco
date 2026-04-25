@@ -8,7 +8,6 @@
 #include <cassert>
 #include <cstdio>
 
-#include "fonts.hpp"
 #include "types.hpp"
 
 const auto PROG_NAME = "draco";
@@ -84,7 +83,10 @@ auto Renderer_Draw_Outline(Rect rect) -> void {
 
 auto Renderer_Zoom_Delta(f32 f) -> void {
     zoom += f;
-    Scale_Font(monospace_font, zoom);
+}
+
+auto Renderer_Zoom_Current() -> f32 {
+    return zoom;
 }
 
 auto Renderer_Clear(Vec4 color) -> void {

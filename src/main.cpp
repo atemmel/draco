@@ -101,6 +101,9 @@ auto loop() -> void {
                         case SDLK_RETURN:
                             Editor_Insert_Newline(&editor);
                             break;
+                        case SDLK_BACKSPACE:
+                            Editor_Remove_Left_Of_Cursor(&editor);
+                            break;
                         case SDLK_LEFT:
                             Editor_Left(&editor);
                             break;
@@ -192,7 +195,7 @@ auto draw(f32 dt) -> void {
 
     Renderer_Clear(BG);
     Renderer_Set_Color(FG);
-    Render_Text(regular_font, "Title q8^)"_s, 100.f, 100.f);
+    Render_Text(regular_font, "Title q8^)"_s, 100.f, 100.f, Renderer_Zoom_Current());
 
     i64 n_virtual_line = 0;
     for (usize idx = 0; idx < editor.lines.size; idx++) {
@@ -202,7 +205,7 @@ auto draw(f32 dt) -> void {
             auto line_no_dim = Calculate_Text_Dimensions_With_Font(font, line_no_str);
             if (ceilf(y) >= offset_y) {
                 Renderer_Set_Color(FG);
-                Render_Text(font, line_no_str, line_no_offset_x - line_no_dim.x, y);
+                Render_Text(font, line_no_str, line_no_offset_x - line_no_dim.x, y, Renderer_Zoom_Current());
             }
         }
 
@@ -212,7 +215,7 @@ auto draw(f32 dt) -> void {
             auto slice = editor.buffer.slice(virtual_line.begin, virtual_line.end);
             f32  y     = offset_y + f32(n_virtual_line) * line_height - was_scroll;
             if (ceilf(y) >= offset_y) {
-                Render_Text(font, slice.data, slice.size, offset_x, y);
+                Render_Text(font, slice.data, slice.size, offset_x, y, Renderer_Zoom_Current());
             }
             n_virtual_line += 1;
         }
@@ -231,7 +234,7 @@ auto draw(f32 dt) -> void {
 
 auto Font_Correctness_Test(Font* font, String string, f32 f) -> void {
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    Render_Text(font, string, 0, 64.f * f);
+    Render_Text(font, string, 0, 64.f * f, Renderer_Zoom_Current());
     auto dim  = Calculate_Text_Dimensions_With_Font(font, string);
     auto rect = SDL_FRect{0.f, 64.f * f, dim.x, dim.y};
     SDL_RenderRect(renderer, &rect);

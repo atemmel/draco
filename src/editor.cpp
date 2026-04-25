@@ -148,6 +148,17 @@ auto Editor_End_Of_Line(Editor* editor) -> void {
 }
 
 auto Editor_Remove_Left_Of_Cursor(Editor* editor) -> void {
+    if (editor->cursor <= 0) {
+        return;
+    }
+
+    auto n = Editor_Bytes_Until_Nearest_Codepoint_Left(editor);
+    for (usize i = 0; i < n; ++i) {
+        Remove(editor->buffer, editor->cursor - 1);
+        --(editor->cursor);
+    }
+
+    Editor_Reindex(editor);
 }
 
 auto Editor_Remove_Right_Of_Cursor(Editor* editor) -> void {
