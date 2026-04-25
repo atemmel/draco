@@ -170,7 +170,7 @@ auto draw(f32 dt) -> void {
     f32       line_height      = Font_Size(font) + 4.0;
     auto      window_size      = Window_Size();
 
-    editor.lines_on_screen = ((window_size.y + offset_y) / line_height) - 3;
+    editor.lines_on_screen = ((window_size.y - offset_y) / line_height) - 3;
 
     auto cursor_data = Editor_Cursor_Draw_Data(&editor);
     auto dim         = Calculate_Text_Dimensions_With_Font(font, cursor_data.text_left_of_cursor);
@@ -219,7 +219,7 @@ auto draw(f32 dt) -> void {
             f32  y           = offset_y + f32(n_virtual_line) * line_height - was_scroll;
             auto line_no_str = Sprintf(buffer, sizeof(buffer), "%lu", idx + 1);
             auto line_no_dim = Calculate_Text_Dimensions_With_Font(font, line_no_str);
-            if (ceilf(y) >= offset_y) {
+            if (ceilf(y + line_height - 1.f) >= offset_y) {
                 Renderer_Set_Color(FG);
                 Render_Text(font, line_no_str, line_no_offset_x - line_no_dim.x, y);
             }
@@ -230,7 +230,7 @@ auto draw(f32 dt) -> void {
         for (auto virtual_line : virtual_lines) {
             auto slice = editor.buffer.slice(virtual_line.begin, virtual_line.end);
             f32  y     = offset_y + f32(n_virtual_line) * line_height - was_scroll;
-            if (ceilf(y) >= offset_y) {
+            if (ceilf(y + line_height - 1.f) >= offset_y) {
                 Render_Text(font, slice.data, slice.size, offset_x, y);
             }
             n_virtual_line += 1;
