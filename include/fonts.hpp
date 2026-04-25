@@ -38,9 +38,6 @@ auto Destroy_Font(Font* font) -> void;
 
 auto Font_Size(const Font* font) -> f32;
 
-auto Scale_Font(Font* font, f32 scale) -> void;
-auto Font_Max_Scale(Font* font) -> f32;
-
 auto Render_Text(const Font* font, String text, f32 x, f32 y, f32 scale) -> void;
 
 auto Render_Text(const Font* font, const u8* text, u32 length, f32 x, f32 y, f32 scale) -> void;

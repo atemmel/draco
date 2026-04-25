@@ -31,7 +31,6 @@ struct Font {
     usize         glyph_metrics_count;
     Texture       atlas;
     bool          use_kerning;
-    f32           render_scale;
     Allocator     allocator;
 };
 
@@ -85,9 +84,8 @@ auto Destroy_Fonts() -> void {
 auto Create_Font_From_Bytes(Allocator allocator, Renderer renderer, const u8* bytes, usize byte_count, u32 font_size) -> Font* {
     auto font = allocator.Create<Font>();
     assert(font);
-    font->renderer     = renderer;
-    font->allocator    = allocator;
-    font->render_scale = 1.f;
+    font->renderer  = renderer;
+    font->allocator = allocator;
 
     assert(!FT_New_Memory_Face(ft_library, bytes, byte_count, 0, &font->ft_face));
     assert(!FT_Set_Pixel_Sizes(font->ft_face, font_size, font_size));
@@ -118,11 +116,7 @@ auto Destroy_Font(Font* font) -> void {
 };
 
 auto Font_Size(const Font* font) -> f32 {
-    return f32(font->font_metrics.ptsize) * (font->render_scale);
-}
-
-auto Scale_Font(Font* font, f32 scale) -> void {
-    font->render_scale = scale;
+    return f32(font->font_metrics.ptsize);
 }
 
 auto Query_Glyph_Metrics(const Font* font, Uint32 ch) -> const Glyph_Metric* {
@@ -156,11 +150,12 @@ static auto Render_Char(const Font* font, u32 ch, u32 previous_ch, Vec2 position
     int  advance = 0;
     auto metrics = Query_Glyph_Metrics(font, ch);
     if (metrics) {
-        SDL_FRect dstrect, srcrect = metrics->rect;
         SDL_Color color;
+        SDL_FRect dstrect, srcrect = metrics->rect;
+        f32       offset = f32(font->ft_face->descender >> 6) + f32(font->ft_face->ascender >> 6);
 
         dstrect.x = position.x;
-        dstrect.y = position.y - (f32(metrics->bearing.y)) + (f32(font->font_metrics.height)) - f32((f32(font->ft_face->ascender >> 6)) + (f32(font->ft_face->descender >> 6)));
+        dstrect.y = position.y + ((f32(-metrics->bearing.y) + f32(font->font_metrics.height) - offset) * scale);
         dstrect.w = metrics->rect.w * scale;
         dstrect.h = metrics->rect.h * scale;
 
@@ -295,7 +290,7 @@ auto Calculate_Text_Dimensions_With_Font(const Font* font, Slice<u8> text_as_str
         previous_ch = ch;
     }
 
-    return area * (font->render_scale);
+    return area * Renderer_Zoom_Current();
 }
 
 auto Calculate_Text_Dimensions_With_Font(const Font* font, String text_as_string) -> Vec2 {

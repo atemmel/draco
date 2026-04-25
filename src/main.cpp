@@ -190,7 +190,7 @@ auto draw(f32 dt) -> void {
         .x = was_pos.x,
         .y = was_pos.y,
         .w = 2.f,
-        .h = f32(Font_Size(font)),
+        .h = f32(Font_Size(font)) * Renderer_Zoom_Current(),
     };
 
     Renderer_Clear(BG);
