@@ -170,7 +170,7 @@ auto draw(f32 dt) -> void {
     f32       line_height      = Font_Size(font) + 4.0;
     auto      window_size      = Window_Size();
 
-    editor.lines_on_screen = ((window_size.y - offset_y) / line_height) - 3;
+    editor.lines_on_screen = ((window_size.y - offset_y) / line_height);
 
     auto cursor_data = Editor_Cursor_Draw_Data(&editor);
     auto dim         = Calculate_Text_Dimensions_With_Font(font, cursor_data.text_left_of_cursor);
@@ -240,7 +240,7 @@ auto draw(f32 dt) -> void {
     Renderer_Set_Color(FG);
     Renderer_Draw_Rect(rect);
 
-    Rect editor_outline = {offset_x, offset_y, 500.f, 500.f};
+    Rect editor_outline = {offset_x, offset_y, 800.f, 600.f};
     Renderer_Draw_Outline(editor_outline);
     /*
     rend.drawWindowDecoration(gui);
