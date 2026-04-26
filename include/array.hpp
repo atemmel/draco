@@ -104,7 +104,7 @@ auto Append_Slice(Allocator allocator, Array<T>& array, Slice<T> slice) -> Array
     // new array
     usize new_capacity = (array.capacity + slice.size) * 2;
     auto  new_data     = allocator.Alloc<T>(new_capacity);
-    auto  new_size     = array.size + 1;
+    auto  new_size     = array.size + slice.size;
     memcpy(new_data, array.data, sizeof(T) * array.size);
     memcpy(new_data + array.size, slice.data, sizeof(T) * slice.size);
 
