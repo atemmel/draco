@@ -6,11 +6,24 @@ output      := draco
 output-path := build/draco
 includes    := [ -Iinclude -I/usr/include/freetype2 ]
 libs        := [ -lSDL3 -lfreetype ]
+src         := src/*.cpp
+
+#{ TODO: this does not work
+cmds := [
+  cachegrind = rest -> {
+    valgrind "--tool=cachegrind" $output-path $rest
+  }
+]
+
+say $cmds'cachegrind
+#}
 
 mkdir -p build
 
+say "g++ {src} -o {output-path} {libs} {includes} -g"
+
 #TODO: make parallel cached .o build with gnu parallel
-_, status := (g++ src/*.cpp -o $output-path $libs $includes -g)
+_, status := (g++ $src -o $output-path $libs $includes -g)
 
 if (len $argv) == 0 || $status != 0 {
     exit 0

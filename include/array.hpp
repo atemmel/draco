@@ -176,6 +176,7 @@ auto Remove(Array<T>& array, usize index) -> void {
     assert(array.size > 0);
     assert(index <= array.size);
     memmove(array.begin() + index, array.begin() + index + 1, sizeof(T) * (array.size - index - 1));
+    --array.size;
 }
 
 template <typename T>
