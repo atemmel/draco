@@ -8,14 +8,14 @@ includes    := [ -Iinclude -I/usr/include/freetype2 ]
 libs        := [ -lSDL3 -lfreetype ]
 src         := src/*.cpp
 
-#{ TODO: this does not work
+#{
 cmds := [
   cachegrind = rest -> {
     valgrind "--tool=cachegrind" $output-path $rest
   }
 ]
 
-say $cmds'cachegrind
+$cmds'cachegrind $rest
 #}
 
 mkdir -p build
@@ -33,9 +33,7 @@ arg  := (get $argv 0)
 rest := (slice $argv 1 (len $argv))
 
 if $arg == run && (fs'exists $output-path) {
-    #TODO: this currently fails
-    #"./{output-path}"
-    ./build/draco $rest
+    exec $output-path $rest
 } else if $arg == cachegrind {
     valgrind "--tool=cachegrind" $output-path $rest
 } else if $arg == perf {
