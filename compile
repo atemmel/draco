@@ -8,19 +8,15 @@ includes    := [ -Iinclude -I/usr/include/freetype2 ]
 libs        := [ -lSDL3 -lfreetype ]
 src         := src/*.cpp
 
-#{
 cmds := [
-  cachegrind = rest -> {
-    valgrind "--tool=cachegrind" $output-path $rest
-  }
+    cachegrind = rest -> (valgrind "--tool=cachegrind" $output-path $rest)
+    debug      = rest -> (seergdb -s $output-path $rest)
+    leaks      = rest -> (valgrind "--leak-check=full" "--suppressions=suppress" $output-path $rest)
+    perf       = rest -> (perf record -g -- $output-path)
+    run        = rest -> (exec $output-path $rest)
 ]
 
-$cmds'cachegrind $rest
-#}
-
 mkdir -p build
-
-say "g++ {src} -o {output-path} {libs} {includes} -g"
 
 #TODO: make parallel cached .o build with gnu parallel
 _, status := (g++ $src -o $output-path $libs $includes -g)
@@ -32,16 +28,8 @@ if (len $argv) == 0 || $status != 0 {
 arg  := (get $argv 0)
 rest := (slice $argv 1 (len $argv))
 
-if $arg == run && (fs'exists $output-path) {
-    exec $output-path $rest
-} else if $arg == cachegrind {
-    valgrind "--tool=cachegrind" $output-path $rest
-} else if $arg == perf {
-    perf record -g -- $output-path
-} else if $arg == leaks {
-    valgrind "--leak-check=full" "--suppressions=suppress" $output-path $rest
-} else if $arg == debug {
-    seergdb -s $output-path $rest
+if (has $cmds $arg) {
+    $cmds'$arg $rest
 } else {
     say "No idea what you meant with '{arg}', but hey, at least your stuff builds, right?"
 }
