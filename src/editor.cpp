@@ -150,9 +150,17 @@ auto Editor_Down(Editor* editor) -> void {
 }
 
 auto Editor_Beginning_Of_Line(Editor* editor) -> void {
+    auto pos                           = Editor_Virtual_Cursor_Position(editor);
+    auto line                          = editor->virtual_lines[pos.row];
+    editor->cursor                     = line.begin;
+    editor->rightmost_cursor_codepoint = Editor_Codepoints_Left_Of_Cursor(editor);
 }
 
 auto Editor_End_Of_Line(Editor* editor) -> void {
+    auto pos                           = Editor_Virtual_Cursor_Position(editor);
+    auto line                          = editor->virtual_lines[pos.row];
+    editor->cursor                     = line.end;
+    editor->rightmost_cursor_codepoint = Editor_Codepoints_Left_Of_Cursor(editor);
 }
 
 auto Editor_Remove_Left_Of_Cursor(Editor* editor) -> void {
@@ -170,6 +178,15 @@ auto Editor_Remove_Left_Of_Cursor(Editor* editor) -> void {
 }
 
 auto Editor_Remove_Right_Of_Cursor(Editor* editor) -> void {
+}
+
+auto Editor_Resize(Editor* editor, Vec2 new_size) -> void {
+    editor->width  = new_size.x;
+    editor->height = new_size.y;
+}
+
+auto Editor_Font_Size_Changed(Editor* editor) -> void {
+    Editor_Reindex(editor);
 }
 
 auto Editor_Virtual_Lines(Editor* editor, usize real_line) -> Slice<Virtual_Line> {

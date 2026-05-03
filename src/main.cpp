@@ -116,16 +116,24 @@ auto loop() -> void {
                         case SDLK_DOWN:
                             Editor_Down(&editor);
                             break;
+                        case SDLK_HOME:
+                            Editor_Beginning_Of_Line(&editor);
+                            break;
+                        case SDLK_END:
+                            Editor_End_Of_Line(&editor);
+                            break;
                         case SDLK_PLUS:
                             if (ctrl_down) {
                                 Renderer_Zoom_Delta(0.1f);
                                 Font_Scale(monospace_font, Renderer_Zoom_Current());
+                                Editor_Font_Size_Changed(&editor);
                             }
                             break;
                         case SDLK_MINUS:
                             if (ctrl_down) {
                                 Renderer_Zoom_Delta(-0.1f);
                                 Font_Scale(monospace_font, Renderer_Zoom_Current());
+                                Editor_Font_Size_Changed(&editor);
                             }
                             break;
                         case SDLK_F2:
