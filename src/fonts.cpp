@@ -7,7 +7,6 @@
 #include <SDL3/SDL_surface.h>
 #include <math.h>
 
-#include <cassert>
 #include <climits>
 #include <cmath>
 
@@ -16,6 +15,7 @@
 #include "math.hpp"
 #include "mem.hpp"
 #include "renderer.hpp"
+#include "runtime.hpp"
 #include "types.hpp"
 #include "utf8.hpp"
 
@@ -65,18 +65,18 @@ Font* monospace3_font;
 Font* monospace4_font;
 
 auto Init_Fonts(Allocator allocator) -> void {
-    assert(!FT_Init_FreeType(&ft_library));
+    Assert(!FT_Init_FreeType(&ft_library));
 
     monospace_font = Create_Font_From_Bytes(allocator, renderer, monospace_font_bytes, sizeof(monospace_font_bytes), 24);
     regular_font   = Create_Font_From_Bytes(allocator, renderer, regular_bold_italic_font_bytes, sizeof(regular_bold_italic_font_bytes), 24);
     // monospace2_font = Create_Font_From_Bytes(allocator, renderer, monospace2_font_bytes, sizeof(monospace2_font_bytes), 24);
     // monospace3_font = Create_Font_From_Bytes(allocator, renderer, monospace3_font_bytes, sizeof(monospace3_font_bytes), 24);
     // monospace4_font = Create_Font_From_Bytes(allocator, renderer, regular_bold_italic_font_bytes, sizeof(regular_bold_italic_font_bytes), 24);
-    assert(monospace_font);
-    assert(regular_font);
-    // assert(monospace2_font);
-    // assert(monospace3_font);
-    // assert(monospace4_font);
+    Assert(monospace_font);
+    Assert(regular_font);
+    // Assert(monospace2_font);
+    // Assert(monospace3_font);
+    // Assert(monospace4_font);
 }
 
 auto Destroy_Fonts() -> void {
@@ -89,10 +89,10 @@ auto Destroy_Fonts() -> void {
 
 auto Create_Font_From_Bytes(Allocator allocator, Renderer renderer, const u8* bytes, usize byte_count, u32 font_size) -> Font* {
     auto font = allocator.Create<Font>();
-    assert(font);
+    Assert(font);
     font->renderer  = renderer;
     font->allocator = allocator;
-    assert(!FT_New_Memory_Face(ft_library, bytes, byte_count, 0, &font->ft_face));
+    Assert(!FT_New_Memory_Face(ft_library, bytes, byte_count, 0, &font->ft_face));
     font->base_size = font_size;
 
     font->glyph_metrics = nullptr;
@@ -233,11 +233,11 @@ auto Set_Glyph_Metrics_Of_Font(Font* font, usize index, i32 x, i32 y) -> void {
 static auto Render_Font_To_Ascii_Surface(Font* font) -> SDL_Surface* {
     auto size_of_atlas_side = n_glyphs_of_ascii_atlas_side * font->font_metrics.ptsize;
     auto surface            = SDL_CreateSurface(size_of_atlas_side, size_of_atlas_side, SDL_PIXELFORMAT_RGBA32);
-    assert(surface);
+    Assert(surface);
 
     font->glyph_metrics_count = font->ft_face->num_glyphs;
     font->glyph_metrics       = font->allocator.Alloc<Glyph_Metric>(128);
-    assert(font->glyph_metrics);
+    Assert(font->glyph_metrics);
 
     i32 xpos = 0, ypos = 0;
 
@@ -310,7 +310,7 @@ static auto Render_Font_To_Ascii_Surface(Font* font) -> SDL_Surface* {
 }
 
 static auto Init_Font_With_New_Size(Font* font, u32 new_size) -> void {
-    assert(!FT_Set_Pixel_Sizes(font->ft_face, new_size, new_size));
+    Assert(!FT_Set_Pixel_Sizes(font->ft_face, new_size, new_size));
     font->allocator.Free(font->glyph_metrics);
 
     font->glyphs_of_lru_atlas_side_count = ceil(sqrt(font->ft_face->num_glyphs));
@@ -324,7 +324,7 @@ static auto Init_Font_With_New_Size(Font* font, u32 new_size) -> void {
     auto surface        = Render_Font_To_Ascii_Surface(font);
     font->ascii_surface = surface;
     font->ascii_atlas   = SDL_CreateTextureFromSurface(renderer, surface);
-    assert(font->ascii_atlas);
+    Assert(font->ascii_atlas);
     SDL_SetTextureBlendMode(font->ascii_atlas, SDL_BLENDMODE_BLEND);
 
     // TODO: init lru atlas

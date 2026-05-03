@@ -5,7 +5,7 @@ import fs
 output      := draco
 output-path := build/draco
 includes    := [ -Iinclude -I/usr/include/freetype2 ]
-libs        := [ -lSDL3 -lfreetype ]
+libs        := [ -lSDL3 -lfreetype -lstdc++exp ]
 src         := src/*.cpp
 
 cmds := [
@@ -19,7 +19,7 @@ cmds := [
 mkdir -p build
 
 #TODO: make parallel cached .o build with gnu parallel
-_, status := (g++ $src -o $output-path $libs $includes -g)
+_, status := (g++ $src -o $output-path $libs $includes -g -std=c++23)
 
 if (len $argv) == 0 || $status != 0 {
     exit 0

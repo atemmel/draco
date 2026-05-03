@@ -5,6 +5,7 @@
 #include "array.hpp"
 #include "fs.hpp"
 #include "mem.hpp"
+#include "runtime.hpp"
 #include "strings.hpp"
 #include "types.hpp"
 #include "utf8.hpp"
@@ -18,7 +19,7 @@ static auto Editor_Bytes_Until_Nearest_Codepoint_Left(Editor* editor) -> usize;
 static auto Editor_Bytes_Until_Nearest_Codepoint_Right(Editor* editor) -> usize;
 static auto Editor_Byte_Of_Nth_Codepoint_Of_Virtual_Line(Editor* editor, Virtual_Line line, usize n) -> usize;
 
-auto Create_Editor(Allocator base_allocator, Font* font) -> Editor {
+auto Create_Editor(Allocator base_allocator, Font* font, Vec2 size) -> Editor {
     auto arena         = Create_Arena_Allocator(base_allocator);
     auto buffer        = Create_Array_Capacity<u8>(base_allocator, 1024);
     auto lines         = Create_Array_Capacity<Real_Line>(base_allocator, 128);
@@ -35,6 +36,7 @@ auto Create_Editor(Allocator base_allocator, Font* font) -> Editor {
                                               .begin = 0,
                                               .end   = 0,
                                           });
+
     return {
         .arena                      = arena,
         .base_allocator             = base_allocator,
@@ -47,6 +49,8 @@ auto Create_Editor(Allocator base_allocator, Font* font) -> Editor {
         .rightmost_cursor_codepoint = 0,
         .scroll_offset              = 0,
         .lines_on_screen            = 1,
+        .width                      = size.x,
+        .height                     = size.y,
     };
 }
 
@@ -77,6 +81,10 @@ auto Editor_Insert_Text(Editor* editor, String content) -> void {
     Insert_Slice(editor->base_allocator, editor->buffer, content.Slice(), editor->cursor);
     editor->cursor += content.size;
     Editor_Reindex(editor);
+    auto pos = Editor_Virtual_Cursor_Position(editor);
+    if (pos.row >= editor->scroll_offset + editor->lines_on_screen) {
+        editor->scroll_offset += 1;
+    }
     editor->rightmost_cursor_codepoint = Editor_Codepoints_Left_Of_Cursor(editor);
 }
 
@@ -231,7 +239,7 @@ static auto Editor_Reindex_Real_Lines(Editor* editor) -> void {
 static auto Editor_Reindex_Virtual_Lines(Editor* editor) -> void {
     Clear(editor->virtual_lines);
 
-    const auto max_width = 800;  // TODO: no hardcoded
+    const auto max_width = editor->width;
 
     for (usize idx = 0; idx < editor->lines.size; idx++) {
         const auto line                     = editor->lines[idx];
@@ -243,30 +251,26 @@ static auto Editor_Reindex_Virtual_Lines(Editor* editor) -> void {
         f32        x                        = 0;
 
         for (; i < line_slice.size; ++i) {
-            if (line_slice[i] != ' ') {
+            auto j        = min(i + 1, line_slice.size);
+            auto word     = line_slice.slice(min(word_begin, j), max(word_begin, j));
+            auto word_dim = Calculate_Text_Dimensions_With_Font(editor->font, word);
+            if (line_slice[i] != ' ' && word_dim.x + x <= editor->width) {
                 continue;
             }
-            i             = min(i + 1, line_slice.size);
-            auto word     = line_slice.slice(min(word_begin, i), max(word_begin, i));
-            auto word_dim = Calculate_Text_Dimensions_With_Font(editor->font, word);
-            if (word_dim.x + x > max_width) {
-                Append(editor->base_allocator, editor->virtual_lines, {virtual_line_begin, i - 1});
+            i        = j;
+            word     = line_slice.slice(min(word_begin, i), max(word_begin, i));
+            word_dim = Calculate_Text_Dimensions_With_Font(editor->font, word);
+            if (word_dim.x + x >= max_width) {
+                i--;
+                Append(editor->base_allocator, editor->virtual_lines, {virtual_line_begin, i});
                 x                  = 0;
                 word_begin         = i;
                 virtual_line_begin = i;
+                continue;
             }
 
             word_begin = i;
             x += word_dim.x;
-        }
-
-        auto word     = line_slice.slice(word_begin);
-        auto word_dim = Calculate_Text_Dimensions_With_Font(editor->font, word);
-        if (word_dim.x + x > max_width) {
-            Append(editor->base_allocator, editor->virtual_lines, {virtual_line_begin, i});
-            x                  = 0;
-            word_begin         = i;
-            virtual_line_begin = i;
         }
 
         // only allow trailing empty virtual rows if the original row is empty
@@ -276,6 +280,11 @@ static auto Editor_Reindex_Virtual_Lines(Editor* editor) -> void {
 
         auto virtual_line_slice_end      = editor->virtual_lines.size;
         editor->lines[idx].virtual_lines = {virtual_line_slice_begin, virtual_line_slice_end};
+    }
+
+    for (usize i = 0; i < editor->virtual_lines.size; i++) {
+        Assert(editor->virtual_lines[i].begin <= editor->buffer.size);
+        Assert(editor->virtual_lines[i].end <= editor->buffer.size);
     }
 }
 

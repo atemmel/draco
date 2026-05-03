@@ -6,7 +6,6 @@
 #include <SDL3/SDL_render.h>
 #include <SDL3/SDL_timer.h>
 
-#include <cassert>
 #include <cmath>
 #include <cstdio>
 
@@ -17,6 +16,7 @@
 #include "math.hpp"
 #include "mem.hpp"
 #include "renderer.hpp"
+#include "runtime.hpp"
 #include "strings.hpp"
 
 const auto BG   = Vec4{0.137, 0.137, 0.176, 1.0};
@@ -42,7 +42,7 @@ auto main(int argc, char* argv[]) -> int {
         printf("Allocations/frees: %llu/%llu\n",
                (unsigned long long)tracing_allocator.n_allocs,
                (unsigned long long)tracing_allocator.n_frees);
-        assert(tracing_allocator.n_allocs == tracing_allocator.n_frees);
+        Assert(tracing_allocator.n_allocs == tracing_allocator.n_frees);
     });
 
     Init_Renderer();
@@ -50,7 +50,7 @@ auto main(int argc, char* argv[]) -> int {
     Init_Fonts(allocator);
     defer(Destroy_Fonts());
 
-    editor = Create_Editor(allocator, monospace_font);
+    editor = Create_Editor(allocator, monospace_font, {400, 300});
     defer(Destroy_Editor(&editor));
 
     printf("argv: ");
@@ -137,9 +137,6 @@ auto loop() -> void {
                     if (ctrl_down) continue;
                     did_input = true;
                     Editor_Insert_Text(&editor, As_String(event.text.text));
-
-                    fprintf(stderr, "DEBUG: %s\n", editor.buffer.data);
-
                     break;
             }
         }
@@ -240,7 +237,7 @@ auto draw(f32 dt) -> void {
     Renderer_Set_Color(FG);
     Renderer_Draw_Rect(rect);
 
-    Rect editor_outline = {offset_x, offset_y, 800.f, 600.f};
+    Rect editor_outline = {offset_x, offset_y, editor.width, editor.height};
     Renderer_Draw_Outline(editor_outline);
     /*
     rend.drawWindowDecoration(gui);

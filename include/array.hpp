@@ -1,9 +1,9 @@
 #pragma once
 
-#include <cassert>
 #include <cstring>
 
 #include "mem.hpp"
+#include "runtime.hpp"
 #include "slice.hpp"
 #include "types.hpp"
 
@@ -14,12 +14,12 @@ struct Array {
     usize capacity = 0;
 
     auto operator[](usize idx) -> T& {
-        assert(idx < size);
+        Assert(idx < size);
         return data[idx];
     }
 
     auto operator[](usize idx) const -> const T& {
-        assert(idx < size);
+        Assert(idx < size);
         return data[idx];
     }
 
@@ -44,9 +44,9 @@ struct Array {
     }
 
     auto slice(usize from, usize to) -> Slice<T> {
-        assert(from <= size);
-        assert(to <= size);
-        assert(from <= to);
+        Assert(from <= size);
+        Assert(to <= size);
+        Assert(from <= to);
         return {
             .data = data + from,
             .size = to - from,
@@ -167,14 +167,14 @@ auto Insert_Slice(Allocator allocator, Array<T>& array, Slice<T> slice, usize id
 
 template <typename T>
 auto Pop(Array<T>& array) -> void {
-    assert(array.size > 0);
+    Assert(array.size > 0);
     array.size--;
 }
 
 template <typename T>
 auto Remove(Array<T>& array, usize index) -> void {
-    assert(array.size > 0);
-    assert(index <= array.size);
+    Assert(array.size > 0);
+    Assert(index <= array.size);
     memmove(array.begin() + index, array.begin() + index + 1, sizeof(T) * (array.size - index - 1));
     --array.size;
 }

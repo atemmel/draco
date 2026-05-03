@@ -2,6 +2,7 @@
 
 #include "array.hpp"
 #include "fonts.hpp"
+#include "math.hpp"
 #include "mem.hpp"
 #include "slice.hpp"
 #include "strings.hpp"
@@ -41,9 +42,11 @@ struct Editor {
     usize               rightmost_cursor_codepoint;
     i64                 scroll_offset;
     i64                 lines_on_screen;
+    f32                 width;
+    f32                 height;
 };
 
-auto Create_Editor(Allocator base_allocator, Font* font) -> Editor;
+auto Create_Editor(Allocator base_allocator, Font* font, Vec2 size) -> Editor;
 auto Destroy_Editor(Editor* editor) -> void;
 
 auto Editor_Open_File(Editor* editor, String filename) -> void;
@@ -60,6 +63,7 @@ auto Editor_Beginning_Of_Line(Editor* editor) -> void;
 auto Editor_End_Of_Line(Editor* editor) -> void;
 auto Editor_Remove_Left_Of_Cursor(Editor* editor) -> void;
 auto Editor_Remove_Right_Of_Cursor(Editor* editor) -> void;
+auto Editor_Resize(Editor* editor, Vec2 new_size) -> void;
 
 auto Editor_Virtual_Lines(Editor* editor, usize real_line) -> Slice<Virtual_Line>;
 auto Editor_Virtual_Cursor_Position(Editor* editor) -> Virtual_Cursor;

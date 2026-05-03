@@ -1,7 +1,6 @@
 #pragma once
 
-#include <cassert>
-
+#include "runtime.hpp"
 #include "types.hpp"
 template <typename T>
 struct Slice {
@@ -9,12 +8,12 @@ struct Slice {
     usize size;
 
     auto operator[](usize idx) -> T& {
-        assert(idx < size);
+        Assert(idx < size);
         return data[idx];
     }
 
     auto operator[](usize idx) const -> const T& {
-        assert(idx < size);
+        Assert(idx < size);
         return data[idx];
     }
 
@@ -39,9 +38,9 @@ struct Slice {
     }
 
     auto slice(usize from, usize to) -> Slice<T> {
-        assert(from <= size);
-        assert(to <= size);
-        assert(from <= to);
+        Assert(from <= size);
+        Assert(to <= size);
+        Assert(from <= to);
         return {
             .data = data + from,
             .size = to - from,

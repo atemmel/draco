@@ -1,3 +1,4 @@
 -I./include
 -I/usr/include/freetype2
 -Wno-c23-extensions
+-std=c++23

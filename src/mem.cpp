@@ -1,10 +1,10 @@
 #include "mem.hpp"
 
-#include <cassert>
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
 
+#include "runtime.hpp"
 #include "strings.hpp"
 #include "types.hpp"
 
@@ -75,7 +75,7 @@ static auto Arena_Allocator_New_Region(Arena_Allocator* arena, usize requested_s
     constexpr usize default_size = 1 * 1000 * 1000;
     auto            new_size     = max(default_size, requested_size * 2);
     auto            region       = arena->base_allocator.Create<Arena_Allocator::Region>();
-    assert(region);
+    Assert(region);
 
     *region = {
         .next     = null,
@@ -84,7 +84,7 @@ static auto Arena_Allocator_New_Region(Arena_Allocator* arena, usize requested_s
         .capacity = new_size,
     };
 
-    assert(region->data);
+    Assert(region->data);
     return region;
 }
 

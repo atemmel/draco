@@ -5,9 +5,9 @@
 #include <SDL3/SDL_video.h>
 #include <unistd.h>
 
-#include <cassert>
 #include <cstdio>
 
+#include "runtime.hpp"
 #include "types.hpp"
 
 const auto PROG_NAME = "draco";
@@ -26,7 +26,7 @@ auto Set_Refresh_Rate(f32 display_fps) -> void {
 
 auto Init_Renderer() -> void {
     auto display_mode = SDL_GetCurrentDisplayMode(SDL_GetPrimaryDisplay());
-    assert(display_mode);
+    Assert(display_mode);
 
     refresh_rate_ns = display_mode->refresh_rate;
 
@@ -34,10 +34,10 @@ auto Init_Renderer() -> void {
                         SDL_WINDOW_RESIZABLE | SDL_WINDOW_BORDERLESS;
 
     window = SDL_CreateWindow(PROG_NAME, W, H, window_flags);
-    assert(window);
+    Assert(window);
 
     renderer = SDL_CreateRenderer(window, "vulkan");
-    assert(renderer);
+    Assert(renderer);
 
     // TODO
     // SDL_SetWindowHitTest
