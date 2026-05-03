@@ -249,24 +249,41 @@ static auto Editor_Reindex_Virtual_Lines(Editor* editor) -> void {
         auto       word_begin               = line.begin;
         usize      i                        = line.begin;
         f32        x                        = 0;
+        usize      last_seen_space          = 0;
 
         for (; i < line_slice.size; ++i) {
-            auto j        = min(i + 1, line_slice.size);
-            auto word     = line_slice.slice(min(word_begin, j), max(word_begin, j));
-            auto word_dim = Calculate_Text_Dimensions_With_Font(editor->font, word);
-            if (line_slice[i] != ' ' && word_dim.x + x <= editor->width) {
+            auto j                    = min(i + 1, line_slice.size);
+            auto word                 = line_slice.slice(min(word_begin, j), max(word_begin, j));
+            auto word_dim             = Calculate_Text_Dimensions_With_Font(editor->font, word);
+            auto next_glyph_overflows = word_dim.x + x >= max_width;
+            auto is_seeing_space      = line_slice[i] == ' ';
+
+            if (!is_seeing_space && !next_glyph_overflows) {
                 continue;
             }
+
             i        = j;
             word     = line_slice.slice(min(word_begin, i), max(word_begin, i));
             word_dim = Calculate_Text_Dimensions_With_Font(editor->font, word);
-            if (word_dim.x + x >= max_width) {
-                i--;
-                Append(editor->base_allocator, editor->virtual_lines, {virtual_line_begin, i});
+
+            if (next_glyph_overflows) {  // begin a new line
+                auto has_seen_space = last_seen_space != 0;
+
+                if (has_seen_space) {    // soft line wrap, break between words
+                    i = last_seen_space + 1;
+                    Append(editor->base_allocator, editor->virtual_lines, {virtual_line_begin, last_seen_space});
+                } else {                 // hard line wrap, break in the middle of a word
+                    i--;
+                    Append(editor->base_allocator, editor->virtual_lines, {virtual_line_begin, i});
+                }
                 x                  = 0;
                 word_begin         = i;
                 virtual_line_begin = i;
                 continue;
+            }
+
+            if (is_seeing_space) {
+                last_seen_space = i - 1;
             }
 
             word_begin = i;
