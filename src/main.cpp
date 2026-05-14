@@ -144,7 +144,8 @@ auto loop() -> void {
                 case SDL_EVENT_TEXT_INPUT:
                     if (ctrl_down) continue;
                     did_input = true;
-                    Editor_Insert_Text(&editor, As_String(event.text.text));
+                    auto str  = As_String(event.text.text);
+                    Editor_Insert_Text(&editor, str);
                     break;
             }
         }

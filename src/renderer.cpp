@@ -37,6 +37,9 @@ auto Init_Renderer() -> void {
     Assert(window);
 
     renderer = SDL_CreateRenderer(window, "vulkan");
+    if (!renderer) {
+        renderer = SDL_CreateRenderer(window, "software");
+    }
     Assert(renderer);
 
     // TODO

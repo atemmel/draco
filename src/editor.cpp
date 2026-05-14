@@ -279,17 +279,21 @@ static auto Editor_Reindex_Virtual_Lines(Editor* editor) -> void {
                 continue;
             }
 
-            i        = j;
-            word     = line_slice.slice(min(word_begin, i), max(word_begin, i));
-            word_dim = Calculate_Text_Dimensions_With_Font(editor->font, word);
+            i              = j;
+            auto word_from = min(word_begin, i);
+            auto word_to   = max(word_begin, i);
+            word           = line_slice.slice(word_from, word_to);
+            word_dim       = Calculate_Text_Dimensions_With_Font(editor->font, word);
 
-            if (next_glyph_overflows) {  // begin a new line
-                auto has_seen_space = last_seen_space != 0;
+            if (next_glyph_overflows) {                                // we should begin a new line
+                auto has_seen_space = true                             //
+                                      && last_seen_space != 0          // has seen space
+                                      && last_seen_space > word_from;  // has seen space on this line
 
-                if (has_seen_space) {    // soft line wrap, break between words
+                if (has_seen_space) {                                  // soft line wrap, break between words
                     i = last_seen_space + 1;
                     Append(editor->base_allocator, editor->virtual_lines, {virtual_line_begin, last_seen_space});
-                } else {                 // hard line wrap, break in the middle of a word
+                } else {                                               // hard line wrap, break in the middle of a word
                     i--;
                     Append(editor->base_allocator, editor->virtual_lines, {virtual_line_begin, i});
                 }
