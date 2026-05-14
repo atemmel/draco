@@ -19,7 +19,7 @@
 #include "types.hpp"
 #include "utf8.hpp"
 
-const static i32 n_glyphs_of_ascii_atlas_side = i32(ceilf(sqrtf(128.f)));
+const static s32 n_glyphs_of_ascii_atlas_side = s32(ceilf(sqrtf(128.f)));
 
 static auto Render_Font_To_Ascii_Surface(Font* font) -> SDL_Surface*;
 static auto Init_Font_With_New_Size(Font* font, u32 new_size) -> void;
@@ -29,12 +29,12 @@ struct Font {
     FT_Face       ft_face;
     Font_Metrics  font_metrics;
     Glyph_Metric* glyph_metrics;
-    usize         glyph_metrics_count;
+    s64           glyph_metrics_count;
     Texture       ascii_atlas;
     Texture       lru_atlas;
     Surface       ascii_surface;
     Surface       lru_surface;
-    i32           glyphs_of_lru_atlas_side_count;
+    s32           glyphs_of_lru_atlas_side_count;
     u32           base_size;
     bool          use_kerning;
     Allocator     allocator;
@@ -87,7 +87,7 @@ auto Destroy_Fonts() -> void {
     // Destroy_Font(monospace4_font);
 }
 
-auto Create_Font_From_Bytes(Allocator allocator, Renderer renderer, const u8* bytes, usize byte_count, u32 font_size) -> Font* {
+auto Create_Font_From_Bytes(Allocator allocator, Renderer renderer, const u8* bytes, s64 byte_count, u32 font_size) -> Font* {
     auto font = allocator.Create<Font>();
     Assert(font);
     font->renderer  = renderer;
@@ -138,7 +138,7 @@ auto Query_Glyph_Metrics(const Font* font, Uint32 ch) -> const Glyph_Metric* {
     return metrics;
 }
 
-auto Get_Kerning_Offset(const Font* font, Uint32 ch, Uint32 previous_ch) -> i32 {
+auto Get_Kerning_Offset(const Font* font, Uint32 ch, Uint32 previous_ch) -> s32 {
     int offset = 0;
 
     if (font->use_kerning) {
@@ -211,7 +211,7 @@ auto Render_Text(const Font* font, const u8* text, u32 text_number_of_bytes, f32
     }
 }
 
-auto Set_Glyph_Metrics_Of_Font(Font* font, usize index, i32 x, i32 y) -> void {
+auto Set_Glyph_Metrics_Of_Font(Font* font, s64 index, s32 x, s32 y) -> void {
     font->glyph_metrics[index].rect.x    = x * font->font_metrics.ptsize;
     font->glyph_metrics[index].rect.y    = y * font->font_metrics.ptsize;
     font->glyph_metrics[index].rect.w    = font->ft_face->glyph->metrics.width >> 6;
@@ -239,7 +239,7 @@ static auto Render_Font_To_Ascii_Surface(Font* font) -> SDL_Surface* {
     font->glyph_metrics       = font->allocator.Alloc<Glyph_Metric>(128);
     Assert(font->glyph_metrics);
 
-    i32 xpos = 0, ypos = 0;
+    s32 xpos = 0, ypos = 0;
 
     for (FT_ULong charcode = 0; charcode < 128; ++charcode) {
         if (xpos < (n_glyphs_of_ascii_atlas_side - 1)) {
@@ -262,11 +262,11 @@ static auto Render_Font_To_Ascii_Surface(Font* font) -> SDL_Surface* {
 
         Set_Glyph_Metrics_Of_Font(font, charcode, xpos, ypos);
 
-        i32 xreal = xpos * font->font_metrics.ptsize;
-        i32 yreal = ypos * font->font_metrics.ptsize;
-        for (i32 y = 0; y < bitmap->rows; y++) {
-            for (i32 x = 0; x < bitmap->width; x++) {
-                i32  index = (yreal + y) * surface->w + xreal + x;
+        s32 xreal = xpos * font->font_metrics.ptsize;
+        s32 yreal = ypos * font->font_metrics.ptsize;
+        for (s32 y = 0; y < bitmap->rows; y++) {
+            for (s32 x = 0; x < bitmap->width; x++) {
+                s32  index = (yreal + y) * surface->w + xreal + x;
                 u32* pixel = &((u32*)surface->pixels)[index];
                 u8   alpha = bitmap->buffer[y * bitmap->pitch + x];
                 *pixel     = SDL_MapRGBA(SDL_GetPixelFormatDetails(surface->format), null, 255, 255, 255, alpha);

@@ -4,15 +4,15 @@
 #include "types.hpp"
 template <typename T>
 struct Slice {
-    T*    data;
-    usize size;
+    T*  data;
+    s64 size;
 
-    auto operator[](usize idx) -> T& {
+    auto operator[](s64 idx) -> T& {
         Assert(idx < size);
         return data[idx];
     }
 
-    auto operator[](usize idx) const -> const T& {
+    auto operator[](s64 idx) const -> const T& {
         Assert(idx < size);
         return data[idx];
     }
@@ -33,11 +33,11 @@ struct Slice {
         return data + size;
     }
 
-    auto slice(usize from = 0) -> Slice<T> {
+    auto slice(s64 from = 0) -> Slice<T> {
         return slice(from, size);
     }
 
-    auto slice(usize from, usize to) -> Slice<T> {
+    auto slice(s64 from, s64 to) -> Slice<T> {
         Assert(from <= size);
         Assert(to <= size);
         Assert(from <= to);

@@ -72,7 +72,7 @@ auto main(int argc, char* argv[]) -> int {
 }
 
 bool animating  = false;
-i64  last_tick  = 0;
+s64  last_tick  = 0;
 Vec2 was_pos    = {-1.f, -1.f};
 f32  was_scroll = 0.f;
 bool ctrl_down  = false;
@@ -219,8 +219,8 @@ auto draw(f32 dt) -> void {
     Renderer_Set_Color(FG);
     Render_Text(regular_font, "Title q8^)"_s, 100.f, 100.f);
 
-    i64 n_virtual_line = 0;
-    for (usize idx = 0; idx < editor.lines.size; idx++) {
+    s64 n_virtual_line = 0;
+    for (s64 idx = 0; idx < editor.lines.size; idx++) {
         {
             f32  y           = offset_y + f32(n_virtual_line) * line_height - was_scroll;
             auto line_no_str = Sprintf(buffer, sizeof(buffer), "%lu", idx + 1);

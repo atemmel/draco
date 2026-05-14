@@ -8,7 +8,7 @@
 struct String;
 
 struct Allocator {
-    using Alloc_Fn = void* (*)(void* context, usize size);
+    using Alloc_Fn = void* (*)(void* context, s64 size);
     using Free_Fn  = void (*)(void* context, void* pointer);
 
     Alloc_Fn alloc;
@@ -16,7 +16,7 @@ struct Allocator {
     void*    context;
 
     template <typename T>
-    auto Alloc(usize count) -> T* {
+    auto Alloc(s64 count) -> T* {
         if (count == 0) return null;
         auto size = sizeof(T) * count;
         auto ptr  = (T*)alloc(context, size);
@@ -62,8 +62,8 @@ struct Arena_Allocator {
     struct Region {
         Region* next;
         u8*     data;
-        usize   occupied;
-        usize   capacity;
+        s64     occupied;
+        s64     capacity;
     };
 
     Region*   begin;

@@ -56,7 +56,7 @@ auto Destroy_Renderer() -> void {
 auto Dump_Available_Drivers() -> void {
     printf("Available drivers:\n");
 
-    i32         i    = 0;
+    s32         i    = 0;
     const char* driv = SDL_GetRenderDriver(0);
     for (; driv; i++, driv = SDL_GetRenderDriver(i)) {
         printf("%s\n", driv);

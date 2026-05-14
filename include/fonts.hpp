@@ -11,15 +11,15 @@ struct Font;
 struct Glyph_Metric {
     Rect rect;
     Vec2 bearing;
-    i32  advance;
+    s32  advance;
 };
 
 struct Font_Metrics {
-    i64 height;
+    s64 height;
     u32 ptsize;
-    i32 max_glyph_width;
-    i32 max_glyph_height;
-    i32 max_glyph_advance;
+    s32 max_glyph_width;
+    s32 max_glyph_height;
+    s32 max_glyph_advance;
 };
 
 extern Font* monospace_font;
@@ -32,7 +32,7 @@ auto Init_Fonts(Allocator allocator) -> void;
 
 auto Destroy_Fonts() -> void;
 
-auto Create_Font_From_Bytes(Allocator allocator, Renderer renderer, const u8* bytes, usize byte_count, u32 font_size) -> Font*;
+auto Create_Font_From_Bytes(Allocator allocator, Renderer renderer, const u8* bytes, s64 byte_count, u32 font_size) -> Font*;
 
 auto Destroy_Font(Font* font) -> void;
 

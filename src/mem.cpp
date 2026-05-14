@@ -29,7 +29,7 @@ auto Allocator::AllocPrint(const char* fmt, ...) -> String {
     va_start(args_1, fmt);
     va_list args_2;
     va_copy(args_2, args_1);
-    usize required_len = vsnprintf(null, 0, fmt, args_1);
+    s64 required_len = vsnprintf(null, 0, fmt, args_1);
     va_end(args_1);
     auto ptr = this->Alloc<u8>(required_len + 1);
     auto str = Sprintf(ptr, required_len, fmt, args_2);
@@ -37,7 +37,7 @@ auto Allocator::AllocPrint(const char* fmt, ...) -> String {
     return str;
 }
 
-auto Default_Allocator_Alloc(void*, usize size) -> void* {
+auto Default_Allocator_Alloc(void*, s64 size) -> void* {
     return malloc(size);
 }
 
@@ -51,7 +51,7 @@ const Allocator default_allocator = {
     .context = null,
 };
 
-auto Tracing_Allocator_Alloc(void* context, usize size) -> void* {
+auto Tracing_Allocator_Alloc(void* context, s64 size) -> void* {
     auto ctx = (Tracing_Allocator*)context;
     ctx->n_allocs += 1;
     return ctx->base_allocator.Alloc<u8>(size);
@@ -71,10 +71,10 @@ auto Tracing_Allocator::Interface() -> struct Allocator {
     };
 };
 
-static auto Arena_Allocator_New_Region(Arena_Allocator* arena, usize requested_size) -> Arena_Allocator::Region* {
-    constexpr usize default_size = 1 * 1000 * 1000;
-    auto            new_size     = max(default_size, requested_size * 2);
-    auto            region       = arena->base_allocator.Create<Arena_Allocator::Region>();
+static auto Arena_Allocator_New_Region(Arena_Allocator* arena, s64 requested_size) -> Arena_Allocator::Region* {
+    constexpr s64 default_size = 1 * 1000 * 1000;
+    auto          new_size     = max(default_size, requested_size * 2);
+    auto          region       = arena->base_allocator.Create<Arena_Allocator::Region>();
     Assert(region);
 
     *region = {
@@ -88,7 +88,7 @@ static auto Arena_Allocator_New_Region(Arena_Allocator* arena, usize requested_s
     return region;
 }
 
-auto Arena_Allocator_Alloc(void* context, usize size) -> void* {
+auto Arena_Allocator_Alloc(void* context, s64 size) -> void* {
     auto ctx = (Arena_Allocator*)context;
 
     Arena_Allocator::Region* previous = null;

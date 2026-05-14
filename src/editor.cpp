@@ -1,7 +1,5 @@
 #include "editor.hpp"
 
-#include <SDL3/SDL_render.h>
-
 #include "array.hpp"
 #include "fs.hpp"
 #include "mem.hpp"
@@ -14,10 +12,10 @@
 static auto Editor_Reindex(Editor* editor) -> void;
 static auto Editor_Reindex_Real_Lines(Editor* editor) -> void;
 static auto Editor_Reindex_Virtual_Lines(Editor* editor) -> void;
-static auto Editor_Codepoints_Left_Of_Cursor(Editor* editor) -> usize;
-static auto Editor_Bytes_Until_Nearest_Codepoint_Left(Editor* editor) -> usize;
-static auto Editor_Bytes_Until_Nearest_Codepoint_Right(Editor* editor) -> usize;
-static auto Editor_Byte_Of_Nth_Codepoint_Of_Virtual_Line(Editor* editor, Virtual_Line line, usize n) -> usize;
+static auto Editor_Codepoints_Left_Of_Cursor(Editor* editor) -> s64;
+static auto Editor_Bytes_Until_Nearest_Codepoint_Left(Editor* editor) -> s64;
+static auto Editor_Bytes_Until_Nearest_Codepoint_Right(Editor* editor) -> s64;
+static auto Editor_Byte_Of_Nth_Codepoint_Of_Virtual_Line(Editor* editor, Virtual_Line line, s64 n) -> s64;
 
 auto Create_Editor(Allocator base_allocator, Font* font, Vec2 size) -> Editor {
     auto arena         = Create_Arena_Allocator(base_allocator);
@@ -169,7 +167,7 @@ auto Editor_Remove_Left_Of_Cursor(Editor* editor) -> void {
     }
 
     auto n = Editor_Bytes_Until_Nearest_Codepoint_Left(editor);
-    for (usize i = 0; i < n; ++i) {
+    for (s64 i = 0; i < n; ++i) {
         Remove(editor->buffer, editor->cursor - 1);
         --(editor->cursor);
     }
@@ -189,7 +187,7 @@ auto Editor_Font_Size_Changed(Editor* editor) -> void {
     Editor_Reindex(editor);
 }
 
-auto Editor_Virtual_Lines(Editor* editor, usize real_line) -> Slice<Virtual_Line> {
+auto Editor_Virtual_Lines(Editor* editor, s64 real_line) -> Slice<Virtual_Line> {
     auto virtual_line_idx = editor->lines[real_line].virtual_lines;
     return editor->virtual_lines.slice(virtual_line_idx.begin, virtual_line_idx.end);
 }
@@ -199,7 +197,7 @@ auto Editor_Virtual_Cursor_Position(Editor* editor) -> Virtual_Cursor {
     for (auto line : editor->lines) {
         if (cursor >= line.begin && cursor <= line.end) {
             auto slice = editor->virtual_lines.slice(line.virtual_lines.begin, line.virtual_lines.end);
-            for (usize idx = 0; idx < slice.size; idx++) {
+            for (s64 idx = 0; idx < slice.size; idx++) {
                 const auto virt_line = slice[idx];
                 if (cursor >= virt_line.begin && cursor <= virt_line.end) {
                     return {
@@ -233,9 +231,9 @@ static auto Editor_Reindex(Editor* editor) -> void {
 
 static auto Editor_Reindex_Real_Lines(Editor* editor) -> void {
     Clear(editor->lines);
-    usize begin = 0;
+    s64 begin = 0;
 
-    for (usize idx = 0; idx < editor->buffer.size; idx++) {
+    for (s64 idx = 0; idx < editor->buffer.size; idx++) {
         u8 c = editor->buffer[idx];
         if (c == '\n') {
             auto end = idx;
@@ -258,15 +256,15 @@ static auto Editor_Reindex_Virtual_Lines(Editor* editor) -> void {
 
     const auto max_width = editor->width;
 
-    for (usize idx = 0; idx < editor->lines.size; idx++) {
+    for (s64 idx = 0; idx < editor->lines.size; idx++) {
         const auto line                     = editor->lines[idx];
         auto       virtual_line_slice_begin = editor->virtual_lines.size;
         auto       line_slice               = editor->buffer.slice(0, line.end);
         auto       virtual_line_begin       = line.begin;
         auto       word_begin               = line.begin;
-        usize      i                        = line.begin;
+        s64        i                        = line.begin;
         f32        x                        = 0;
-        usize      last_seen_space          = 0;
+        s64        last_seen_space          = 0;
 
         for (; i < line_slice.size; ++i) {
             auto j                    = min(i + 1, line_slice.size);
@@ -320,13 +318,13 @@ static auto Editor_Reindex_Virtual_Lines(Editor* editor) -> void {
         editor->lines[idx].virtual_lines = {virtual_line_slice_begin, virtual_line_slice_end};
     }
 
-    for (usize i = 0; i < editor->virtual_lines.size; i++) {
+    for (s64 i = 0; i < editor->virtual_lines.size; i++) {
         Assert(editor->virtual_lines[i].begin <= editor->buffer.size);
         Assert(editor->virtual_lines[i].end <= editor->buffer.size);
     }
 }
 
-static auto Editor_Codepoints_Left_Of_Cursor(Editor* editor) -> usize {
+static auto Editor_Codepoints_Left_Of_Cursor(Editor* editor) -> s64 {
     auto pos    = Editor_Virtual_Cursor_Position(editor);
     auto line   = editor->virtual_lines[pos.row];
     auto slice  = editor->buffer.slice(line.begin, min(editor->buffer.size, editor->cursor));
@@ -339,7 +337,7 @@ const static u8 utf_2_mask = 0b11000000;
 const static u8 utf_3_mask = 0b11100000;
 const static u8 utf_4_mask = 0b11110000;
 
-static auto Editor_Bytes_Until_Nearest_Codepoint_Left(Editor* editor) -> usize {
+static auto Editor_Bytes_Until_Nearest_Codepoint_Left(Editor* editor) -> s64 {
     if (editor->cursor < 1) {
         return 0;
     }
@@ -356,8 +354,8 @@ static auto Editor_Bytes_Until_Nearest_Codepoint_Left(Editor* editor) -> usize {
     return 4;
 }
 
-static auto Editor_Bytes_Until_Nearest_Codepoint_Right(Editor* editor) -> usize {
-    auto last_byte_index = max(editor->buffer.size, usize(1)) - 1;
+static auto Editor_Bytes_Until_Nearest_Codepoint_Right(Editor* editor) -> s64 {
+    auto last_byte_index = max(editor->buffer.size, s64(1)) - 1;
     // cursor can be at buffer.size, that's fine
     if (editor->cursor >= last_byte_index + 1) {
         return 0;
@@ -376,12 +374,12 @@ static auto Editor_Bytes_Until_Nearest_Codepoint_Right(Editor* editor) -> usize 
     return 4;
 }
 
-static auto Editor_Byte_Of_Nth_Codepoint_Of_Virtual_Line(Editor* editor, Virtual_Line line, usize n) -> usize {
+static auto Editor_Byte_Of_Nth_Codepoint_Of_Virtual_Line(Editor* editor, Virtual_Line line, s64 n) -> s64 {
     auto slice = editor->buffer.slice(line.begin, line.end);
 
-    usize i = 0;
+    s64 i = 0;
 
-    for (usize codepoints = 0; i < slice.size && codepoints < n; ++codepoints) {
+    for (s64 codepoints = 0; i < slice.size && codepoints < n; ++codepoints) {
         if (auto c = Utf8_Length(slice[i]); i != -1) {
             i += c;
         } else {

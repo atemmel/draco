@@ -33,10 +33,10 @@ auto Utf8_Length(u8 byte) -> u32 {
     return len;
 }
 
-auto Utf8_Length(Slice<u8> slice) -> usize {
-    usize sum = 0;
+auto Utf8_Length(Slice<u8> slice) -> s64 {
+    s64 sum = 0;
 
-    for (usize i = 0; i < slice.size; sum++) {
+    for (s64 i = 0; i < slice.size; sum++) {
         auto c     = slice[i];
         auto c_len = Utf8_Length(c);
         if (c_len == -1) {

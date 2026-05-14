@@ -9,16 +9,16 @@
 
 template <typename T>
 struct Array {
-    T*    data     = null;
-    usize size     = 0;
-    usize capacity = 0;
+    T*  data     = null;
+    s64 size     = 0;
+    s64 capacity = 0;
 
-    auto operator[](usize idx) -> T& {
+    auto operator[](s64 idx) -> T& {
         Assert(idx < size);
         return data[idx];
     }
 
-    auto operator[](usize idx) const -> const T& {
+    auto operator[](s64 idx) const -> const T& {
         Assert(idx < size);
         return data[idx];
     }
@@ -39,11 +39,11 @@ struct Array {
         return data + size;
     }
 
-    auto slice(usize from = 0) -> Slice<T> {
+    auto slice(s64 from = 0) -> Slice<T> {
         return slice(from, size);
     }
 
-    auto slice(usize from, usize to) -> Slice<T> {
+    auto slice(s64 from, s64 to) -> Slice<T> {
         Assert(from <= size);
         Assert(to <= size);
         Assert(from <= to);
@@ -55,7 +55,7 @@ struct Array {
 };
 
 template <typename T>
-auto Create_Array_Capacity(Allocator allocator, usize capacity) -> Array<T> {
+auto Create_Array_Capacity(Allocator allocator, s64 capacity) -> Array<T> {
     return Array<T>{
         .data     = allocator.Alloc<T>(capacity),
         .size     = 0,
@@ -71,9 +71,9 @@ auto Append(Allocator allocator, Array<T>& array, const T& value) -> Array<T> {
     }
 
     // new array
-    usize new_capacity   = max(usize(4), array.capacity * 2);
-    auto  new_data       = allocator.Alloc<T>(new_capacity);
-    auto  new_size       = array.size + 1;
+    s64  new_capacity    = max(s64(4), array.capacity * 2);
+    auto new_data        = allocator.Alloc<T>(new_capacity);
+    auto new_size        = array.size + 1;
     new_data[array.size] = value;
     memcpy(new_data, array.data, sizeof(T) * array.size);
 
@@ -102,9 +102,9 @@ auto Append_Slice(Allocator allocator, Array<T>& array, Slice<T> slice) -> Array
     }
 
     // new array
-    usize new_capacity = (array.capacity + slice.size) * 2;
-    auto  new_data     = allocator.Alloc<T>(new_capacity);
-    auto  new_size     = array.size + slice.size;
+    s64  new_capacity = (array.capacity + slice.size) * 2;
+    auto new_data     = allocator.Alloc<T>(new_capacity);
+    auto new_size     = array.size + slice.size;
     memcpy(new_data, array.data, sizeof(T) * array.size);
     memcpy(new_data + array.size, slice.data, sizeof(T) * slice.size);
 
@@ -121,7 +121,7 @@ auto Append_Slice(Allocator allocator, Array<T>& array, Slice<T> slice) -> Array
 }
 
 template <typename T>
-auto Insert(Allocator allocator, Array<T>& array, usize idx, const T& value) -> void {
+auto Insert(Allocator allocator, Array<T>& array, s64 idx, const T& value) -> void {
     Append(allocator, array, {});
 
     auto insertion_point = array.data + idx;
@@ -131,7 +131,7 @@ auto Insert(Allocator allocator, Array<T>& array, usize idx, const T& value) -> 
 }
 
 template <typename T>
-auto Insert_Slice(Allocator allocator, Array<T>& array, Slice<T> slice, usize idx) -> Array<T> {
+auto Insert_Slice(Allocator allocator, Array<T>& array, Slice<T> slice, s64 idx) -> Array<T> {
     if (!slice.size) {
         return array;
     }
@@ -146,9 +146,9 @@ auto Insert_Slice(Allocator allocator, Array<T>& array, Slice<T> slice, usize id
     }
 
     // new array
-    usize new_capacity = (array.capacity + slice.size) * 2;
-    auto  new_data     = allocator.Alloc<T>(new_capacity);
-    auto  new_size     = array.size + slice.size;
+    s64  new_capacity = (array.capacity + slice.size) * 2;
+    auto new_data     = allocator.Alloc<T>(new_capacity);
+    auto new_size     = array.size + slice.size;
     memcpy(new_data, array.data, sizeof(T) * idx);
     memcpy(new_data + idx, slice.data, sizeof(T) * slice.size);
     memcpy(new_data + idx + slice.size, array.data + idx, sizeof(T) * (array.size - idx));
@@ -172,7 +172,7 @@ auto Pop(Array<T>& array) -> void {
 }
 
 template <typename T>
-auto Remove(Array<T>& array, usize index) -> void {
+auto Remove(Array<T>& array, s64 index) -> void {
     Assert(array.size > 0);
     Assert(index <= array.size);
     memmove(array.begin() + index, array.begin() + index + 1, sizeof(T) * (array.size - index - 1));
@@ -197,10 +197,10 @@ auto Destroy_Array(Allocator allocator, Array<T>& array) -> void {
 #ifdef Array_Each
 #undef Array_Each
 #endif
-#define Array_Each(array, element, idx, body)      \
-    for (usize idx = 0; idx < array.size; idx++) { \
-        auto element = array[idx];                 \
-        {                                          \
-            body;                                  \
-        }                                          \
+#define Array_Each(array, element, idx, body)    \
+    for (s64 idx = 0; idx < array.size; idx++) { \
+        auto element = array[idx];               \
+        {                                        \
+            body;                                \
+        }                                        \
     }

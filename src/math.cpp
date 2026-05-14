@@ -3,7 +3,7 @@
 #include <cmath>
 
 Rect::operator SDL_Rect() const {
-    return {i32(x), i32(y), i32(w), i32(h)};
+    return {s32(x), s32(y), s32(w), s32(h)};
 }
 
 Rect::operator SDL_FRect() const {
@@ -19,7 +19,7 @@ auto Rect::Bottom() const -> f32 {
 }
 
 Vec2::operator SDL_Point() const {
-    return {i32(x), i32(y)};
+    return {s32(x), s32(y)};
 }
 
 auto Vec2::Eql(Vec2 other, f32 epsilon) const -> bool {

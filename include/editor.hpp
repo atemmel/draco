@@ -8,21 +8,21 @@
 #include "strings.hpp"
 
 struct Virtual_Line {
-    usize begin, end;
+    s64 begin, end;
 };
 
 struct Virtual_Line_Idx {
-    usize begin, end;
+    s64 begin, end;
 };
 
 struct Real_Line {
-    usize            begin;
-    usize            end;
+    s64              begin;
+    s64              end;
     Virtual_Line_Idx virtual_lines;
 };
 
 struct Virtual_Cursor {
-    usize row, column;
+    s64 row, column;
 };
 
 struct Cursor_Draw_Data {
@@ -37,11 +37,11 @@ struct Editor {
     Array<Real_Line>    lines;
     Array<Virtual_Line> virtual_lines;
     Font*               font;
-    usize               cursor;
+    s64                 cursor;
     String              active_file;
-    usize               rightmost_cursor_codepoint;
-    i64                 scroll_offset;
-    i64                 lines_on_screen;
+    s64                 rightmost_cursor_codepoint;
+    s64                 scroll_offset;
+    s64                 lines_on_screen;
     f32                 width;
     f32                 height;
 };
@@ -66,6 +66,6 @@ auto Editor_Remove_Right_Of_Cursor(Editor* editor) -> void;
 auto Editor_Resize(Editor* editor, Vec2 new_size) -> void;
 auto Editor_Font_Size_Changed(Editor* editor) -> void;
 
-auto Editor_Virtual_Lines(Editor* editor, usize real_line) -> Slice<Virtual_Line>;
+auto Editor_Virtual_Lines(Editor* editor, s64 real_line) -> Slice<Virtual_Line>;
 auto Editor_Virtual_Cursor_Position(Editor* editor) -> Virtual_Cursor;
 auto Editor_Cursor_Draw_Data(Editor* editor) -> Cursor_Draw_Data;

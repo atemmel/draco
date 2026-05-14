@@ -5,8 +5,8 @@
 #include "types.hpp"
 
 struct String {
-    u8*   data;
-    usize size;
+    u8* data;
+    s64 size;
 
     operator const char*() const;
 
@@ -19,4 +19,4 @@ auto As_String(const char* ptr) -> String;
 
 auto Destroy_String(Allocator allocator, String& str) -> void;
 
-String Sprintf(u8* __restrict buffer, usize buffer_size, const char* __restrict format, ...) __attribute__((format(printf, 3, 4)));
+String Sprintf(u8* __restrict buffer, s64 buffer_size, const char* __restrict format, ...) __attribute__((format(printf, 3, 4)));
