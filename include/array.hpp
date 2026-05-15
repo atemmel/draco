@@ -9,9 +9,10 @@
 
 template <typename T>
 struct Array {
-    T*  data     = null;
-    s64 size     = 0;
-    s64 capacity = 0;
+    T*        data     = null;
+    s64       size     = 0;
+    s64       capacity = 0;
+    Allocator allocator;
 
     auto operator[](s64 idx) -> T& {
         Assert(idx < size);
@@ -55,24 +56,37 @@ struct Array {
 };
 
 template <typename T>
-auto Create_Array_Capacity(Allocator allocator, s64 capacity) -> Array<T> {
+auto Create_Array(Allocator allocator) -> Array<T> {
     return Array<T>{
-        .data     = allocator.Alloc<T>(capacity),
-        .size     = 0,
-        .capacity = capacity,
+        .data      = null,
+        .size      = 0,
+        .capacity  = 0,
+        .allocator = allocator,
     };
 }
 
 template <typename T>
-auto Append(Allocator allocator, Array<T>& array, const T& value) -> Array<T> {
+auto Create_Array_Capacity(Allocator allocator, s64 capacity) -> Array<T> {
+    return Array<T>{
+        .data      = allocator.Alloc<T>(capacity),
+        .size      = 0,
+        .capacity  = capacity,
+        .allocator = allocator,
+    };
+};
+
+template <typename T>
+auto Append(Array<T>& array, const T& value) -> Array<T> {
     if (array.size < array.capacity) {
         array.data[array.size++] = value;
         return array;
     }
 
+    auto allocator = array.allocator;
+
     // new array
     s64  new_capacity    = max(s64(4), array.capacity * 2);
-    auto new_data        = allocator.Alloc<T>(new_capacity);
+    T*   new_data        = allocator.template Alloc<T>(new_capacity);
     auto new_size        = array.size + 1;
     new_data[array.size] = value;
     memcpy(new_data, array.data, sizeof(T) * array.size);
@@ -80,20 +94,23 @@ auto Append(Allocator allocator, Array<T>& array, const T& value) -> Array<T> {
     // destroy old array
     allocator.Free(array.data);
 
-    array = {
-        .data     = new_data,
-        .size     = new_size,
-        .capacity = new_capacity,
+    array = Array<T>{
+        .data      = new_data,
+        .size      = new_size,
+        .capacity  = new_capacity,
+        .allocator = allocator,
     };
 
     return array;
 }
 
 template <typename T>
-auto Append_Slice(Allocator allocator, Array<T>& array, Slice<T> slice) -> Array<T> {
+auto Append_Slice(Array<T>& array, Slice<T> slice) -> Array<T> {
     if (!slice.size) {
         return array;
     }
+
+    auto allocator = array.allocator;
 
     if (array.size + slice.size < array.capacity) {
         memcpy(array.data + array.size, slice.data, sizeof(T) * slice.size);
@@ -103,7 +120,7 @@ auto Append_Slice(Allocator allocator, Array<T>& array, Slice<T> slice) -> Array
 
     // new array
     s64  new_capacity = (array.capacity + slice.size) * 2;
-    auto new_data     = allocator.Alloc<T>(new_capacity);
+    auto new_data     = allocator.template Alloc<T>(new_capacity);
     auto new_size     = array.size + slice.size;
     memcpy(new_data, array.data, sizeof(T) * array.size);
     memcpy(new_data + array.size, slice.data, sizeof(T) * slice.size);
@@ -112,17 +129,18 @@ auto Append_Slice(Allocator allocator, Array<T>& array, Slice<T> slice) -> Array
     allocator.Free(array.data);
 
     array = {
-        .data     = new_data,
-        .size     = new_size,
-        .capacity = new_capacity,
+        .data      = new_data,
+        .size      = new_size,
+        .capacity  = new_capacity,
+        .allocator = allocator,
     };
 
     return array;
 }
 
 template <typename T>
-auto Insert(Allocator allocator, Array<T>& array, s64 idx, const T& value) -> void {
-    Append(allocator, array, {});
+auto Insert(Array<T>& array, s64 idx, const T& value) -> void {
+    Append(array, {});
 
     auto insertion_point = array.data + idx;
     memmove(insertion_point + 1, insertion_point, sizeof(T) * (array.size - idx));
@@ -131,10 +149,12 @@ auto Insert(Allocator allocator, Array<T>& array, s64 idx, const T& value) -> vo
 }
 
 template <typename T>
-auto Insert_Slice(Allocator allocator, Array<T>& array, Slice<T> slice, s64 idx) -> Array<T> {
+auto Insert_Slice(Array<T>& array, Slice<T> slice, s64 idx) -> Array<T> {
     if (!slice.size) {
         return array;
     }
+
+    auto allocator = array.allocator;
 
     if (array.size + slice.size < array.capacity) {
         auto insert_slice_begin = array.data + idx;
@@ -147,7 +167,7 @@ auto Insert_Slice(Allocator allocator, Array<T>& array, Slice<T> slice, s64 idx)
 
     // new array
     s64  new_capacity = (array.capacity + slice.size) * 2;
-    auto new_data     = allocator.Alloc<T>(new_capacity);
+    auto new_data     = allocator.template Alloc<T>(new_capacity);
     auto new_size     = array.size + slice.size;
     memcpy(new_data, array.data, sizeof(T) * idx);
     memcpy(new_data + idx, slice.data, sizeof(T) * slice.size);
@@ -156,10 +176,11 @@ auto Insert_Slice(Allocator allocator, Array<T>& array, Slice<T> slice, s64 idx)
     // destroy old array
     allocator.Free(array.data);
 
-    array = {
-        .data     = new_data,
-        .size     = new_size,
-        .capacity = new_capacity,
+    array = Array<T>{
+        .data      = new_data,
+        .size      = new_size,
+        .capacity  = new_capacity,
+        .allocator = allocator,
     };
 
     return array;
@@ -185,7 +206,8 @@ auto Clear(Array<T>& array) -> void {
 }
 
 template <typename T>
-auto Destroy_Array(Allocator allocator, Array<T>& array) -> void {
+auto Destroy_Array(Array<T>& array) -> void {
+    auto allocator = array.allocator;
     allocator.Free(array.data);
     array = {
         .data     = null,

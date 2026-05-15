@@ -22,18 +22,18 @@ auto Create_Editor(Allocator base_allocator, Font* font, Vec2 size) -> Editor {
     auto buffer        = Create_Array_Capacity<u8>(base_allocator, 1024);
     auto lines         = Create_Array_Capacity<Real_Line>(base_allocator, 128);
     auto virtual_lines = Create_Array_Capacity<Virtual_Line>(base_allocator, 128);
-    Append(base_allocator, lines, {
-                                      .begin         = 0,
-                                      .end           = 0,
-                                      .virtual_lines = {
-                                          .begin = 0,
-                                          .end   = 0,
-                                      },
-                                  });
-    Append(base_allocator, virtual_lines, {
-                                              .begin = 0,
-                                              .end   = 0,
-                                          });
+    Append(lines, {
+                      .begin         = 0,
+                      .end           = 0,
+                      .virtual_lines = {
+                          .begin = 0,
+                          .end   = 0,
+                      },
+                  });
+    Append(virtual_lines, {
+                              .begin = 0,
+                              .end   = 0,
+                          });
 
     return {
         .arena                      = arena,
@@ -53,22 +53,22 @@ auto Create_Editor(Allocator base_allocator, Font* font, Vec2 size) -> Editor {
 }
 
 auto Destroy_Editor(Editor* editor) -> void {
-    Destroy_Array(editor->base_allocator, editor->buffer);
-    Destroy_Array(editor->base_allocator, editor->lines);
-    Destroy_Array(editor->base_allocator, editor->virtual_lines);
+    Destroy_Array(editor->buffer);
+    Destroy_Array(editor->lines);
+    Destroy_Array(editor->virtual_lines);
     editor->arena.Destroy();
 }
 
 auto Editor_Open_File(Editor* editor, String filename) -> void {
     editor->active_file = editor->arena.Interface().DupeString(filename);
     auto file_contents  = Read_All_From_File_As_String(editor->arena.Interface(), editor->active_file);
-    Append_Slice(editor->base_allocator, editor->buffer, file_contents.Slice());
+    Append_Slice(editor->buffer, file_contents.Slice());
     Editor_Reindex(editor);
 }
 
 auto Editor_Open_Source(Editor* editor, String source) -> void {
     Clear(editor->buffer);
-    Append_Slice(editor->base_allocator, editor->buffer, source.Slice());
+    Append_Slice(editor->buffer, source.Slice());
     Editor_Reindex(editor);
 }
 
@@ -76,7 +76,7 @@ auto Editor_Save(Editor* editor) -> void {
 }
 
 auto Editor_Insert_Text(Editor* editor, String content) -> void {
-    Insert_Slice(editor->base_allocator, editor->buffer, content.Slice(), editor->cursor);
+    Insert_Slice(editor->buffer, content.Slice(), editor->cursor);
     editor->cursor += content.size;
     Editor_Reindex(editor);
     auto pos = Editor_Virtual_Cursor_Position(editor);
@@ -87,7 +87,7 @@ auto Editor_Insert_Text(Editor* editor, String content) -> void {
 }
 
 auto Editor_Insert_Newline(Editor* editor) -> void {
-    Insert(editor->base_allocator, editor->buffer, editor->cursor, u8('\n'));
+    Insert(editor->buffer, editor->cursor, u8('\n'));
     Editor_Reindex(editor);
     editor->cursor++;
     auto pos = Editor_Virtual_Cursor_Position(editor);
@@ -237,18 +237,18 @@ static auto Editor_Reindex_Real_Lines(Editor* editor) -> void {
         u8 c = editor->buffer[idx];
         if (c == '\n') {
             auto end = idx;
-            Append(editor->base_allocator, editor->lines, {
-                                                              .begin = begin,
-                                                              .end   = end,
-                                                          });
+            Append(editor->lines, {
+                                      .begin = begin,
+                                      .end   = end,
+                                  });
             begin = end + 1;
         }
     };
 
-    Append(editor->base_allocator, editor->lines, {
-                                                      .begin = begin,
-                                                      .end   = editor->buffer.size,
-                                                  });
+    Append(editor->lines, {
+                              .begin = begin,
+                              .end   = editor->buffer.size,
+                          });
 }
 
 static auto Editor_Reindex_Virtual_Lines(Editor* editor) -> void {
@@ -290,10 +290,10 @@ static auto Editor_Reindex_Virtual_Lines(Editor* editor) -> void {
 
                 if (has_seen_space) {                                  // soft line wrap, break between words
                     i = last_seen_space + 1;
-                    Append(editor->base_allocator, editor->virtual_lines, {virtual_line_begin, last_seen_space});
+                    Append(editor->virtual_lines, {virtual_line_begin, last_seen_space});
                 } else {                                               // hard line wrap, break in the middle of a word
                     i--;
-                    Append(editor->base_allocator, editor->virtual_lines, {virtual_line_begin, i});
+                    Append(editor->virtual_lines, {virtual_line_begin, i});
                 }
                 x                  = 0;
                 word_begin         = i;
@@ -311,7 +311,7 @@ static auto Editor_Reindex_Virtual_Lines(Editor* editor) -> void {
 
         // only allow trailing empty virtual rows if the original row is empty
         if (line.begin == virtual_line_begin || virtual_line_begin != i) {
-            Append(editor->base_allocator, editor->virtual_lines, {virtual_line_begin, min(i, line_slice.size)});
+            Append(editor->virtual_lines, {virtual_line_begin, min(i, line_slice.size)});
         }
 
         auto virtual_line_slice_end      = editor->virtual_lines.size;
