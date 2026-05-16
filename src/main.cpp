@@ -50,7 +50,7 @@ auto main(int argc, char* argv[]) -> int {
     Init_Fonts(allocator);
     defer(Destroy_Fonts());
 
-    editor = Create_Editor(allocator, monospace_font, {400, 300});
+    editor = Create_Editor(allocator, monospace_font, {600, 800});
     defer(Destroy_Editor(&editor));
 
     printf("argv: ");
@@ -76,6 +76,8 @@ s64  last_tick  = 0;
 Vec2 was_pos    = {-1.f, -1.f};
 f32  was_scroll = 0.f;
 bool ctrl_down  = false;
+Vec2 camera     = {};
+bool dragging   = false;
 
 auto loop() -> void {
     auto      running = true;
@@ -90,6 +92,35 @@ auto loop() -> void {
             switch (event.type) {
                 case SDL_EVENT_QUIT:
                     running = false;
+                    break;
+                case SDL_EVENT_MOUSE_BUTTON_DOWN:
+                    dragging = true;
+                    break;
+                case SDL_EVENT_MOUSE_BUTTON_UP:
+                    dragging = false;
+                    break;
+                case SDL_EVENT_MOUSE_MOTION:
+                    if (dragging) {
+                        Vec2 delta = {event.motion.xrel, event.motion.yrel};
+                        camera     = camera + delta;
+                        did_input  = true;
+                    }
+                    break;
+                case SDL_EVENT_MOUSE_WHEEL:
+                    if (ctrl_down) {
+                        auto zoom = event.wheel.y < 0.f ? -0.1f : 0.1f;
+                        Renderer_Zoom_Delta(zoom);
+                        Font_Scale(monospace_font, Renderer_Zoom_Current());
+                        Editor_Font_Size_Changed(&editor);
+
+                        did_input = true;
+                    } else {
+                        if (event.wheel.y < 0.f) {
+                            Editor_Down(&editor);
+                        } else {
+                            Editor_Up(&editor);
+                        }
+                    }
                     break;
                 case SDL_EVENT_KEY_DOWN:
                     did_input = true;
@@ -170,9 +201,9 @@ auto loop() -> void {
 auto draw(f32 dt) -> void {
     static u8 buffer[1024];
     Font*     font             = editor.font;
-    f32       offset_x         = 100.0;
+    f32       offset_x         = 100.0 + camera.x;
     f32       line_no_offset_x = offset_x - 20.0;
-    f32       offset_y         = 200.0;
+    f32       offset_y         = 200.0 + camera.y;
     f32       line_height      = Font_Size(font) + 4.0;
     auto      window_size      = Window_Size();
 
@@ -246,7 +277,12 @@ auto draw(f32 dt) -> void {
     Renderer_Set_Color(FG);
     Renderer_Draw_Rect(rect);
 
-    Rect editor_outline = {offset_x, offset_y, editor.width, editor.height};
+    Rect editor_outline = {
+        offset_x,
+        offset_y,
+        editor.width * Renderer_Zoom_Current(),
+        editor.height * Renderer_Zoom_Current(),
+    };
     Renderer_Draw_Outline(editor_outline);
     /*
     rend.drawWindowDecoration(gui);

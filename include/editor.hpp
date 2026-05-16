@@ -63,6 +63,7 @@ auto Editor_Beginning_Of_Line(Editor* editor) -> void;
 auto Editor_End_Of_Line(Editor* editor) -> void;
 auto Editor_Remove_Left_Of_Cursor(Editor* editor) -> void;
 auto Editor_Remove_Right_Of_Cursor(Editor* editor) -> void;
+auto Editor_Size(Editor* editor) -> Vec2;
 auto Editor_Resize(Editor* editor, Vec2 new_size) -> void;
 auto Editor_Font_Size_Changed(Editor* editor) -> void;
 

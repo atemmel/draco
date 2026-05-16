@@ -11,8 +11,8 @@
 #include "types.hpp"
 
 const auto PROG_NAME = "draco";
-const auto W         = 1200;
-const auto H         = 800;
+const auto W         = 1600;
+const auto H         = 900;
 
 u64      refresh_rate_ns;
 Renderer renderer;
@@ -85,7 +85,11 @@ auto Renderer_Draw_Outline(Rect rect) -> void {
 }
 
 auto Renderer_Zoom_Delta(f32 f) -> void {
+    const f32 min_zoom = 0.1f;
+    const f32 max_zoom = 4.0f;
     zoom += f;
+    zoom = max(min_zoom, zoom);
+    zoom = min(max_zoom, zoom);
 }
 
 auto Renderer_Zoom_Current() -> f32 {

@@ -178,6 +178,10 @@ auto Editor_Remove_Left_Of_Cursor(Editor* editor) -> void {
 auto Editor_Remove_Right_Of_Cursor(Editor* editor) -> void {
 }
 
+auto Editor_Size(Editor* editor) -> Vec2 {
+    return {editor->width, editor->height};
+}
+
 auto Editor_Resize(Editor* editor, Vec2 new_size) -> void {
     editor->width  = new_size.x;
     editor->height = new_size.y;
