@@ -85,8 +85,8 @@ auto Renderer_Draw_Outline(Rect rect) -> void {
 }
 
 auto Renderer_Zoom_Delta(f32 f) -> void {
-    const f32 min_zoom = 0.1f;
-    const f32 max_zoom = 4.0f;
+    const f32 min_zoom = 0.5f;
+    const f32 max_zoom = 2.0f;
     zoom += f;
     zoom = max(min_zoom, zoom);
     zoom = min(max_zoom, zoom);

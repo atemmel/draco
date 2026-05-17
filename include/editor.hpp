@@ -44,6 +44,7 @@ struct Editor {
     s64                 lines_on_screen;
     f32                 width;
     f32                 height;
+    f32                 scale;
 };
 
 auto Create_Editor(Allocator base_allocator, Font* font, Vec2 size) -> Editor;

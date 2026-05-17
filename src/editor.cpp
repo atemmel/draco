@@ -49,6 +49,7 @@ auto Create_Editor(Allocator base_allocator, Font* font, Vec2 size) -> Editor {
         .lines_on_screen            = 1,
         .width                      = size.x,
         .height                     = size.y,
+        .scale                      = 1.f,
     };
 }
 
@@ -179,7 +180,7 @@ auto Editor_Remove_Right_Of_Cursor(Editor* editor) -> void {
 }
 
 auto Editor_Size(Editor* editor) -> Vec2 {
-    return {editor->width, editor->height};
+    return Vec2{editor->width, editor->height} * editor->scale;
 }
 
 auto Editor_Resize(Editor* editor, Vec2 new_size) -> void {
@@ -258,7 +259,7 @@ static auto Editor_Reindex_Real_Lines(Editor* editor) -> void {
 static auto Editor_Reindex_Virtual_Lines(Editor* editor) -> void {
     Clear(editor->virtual_lines);
 
-    const auto max_width = editor->width;
+    const auto max_width = Editor_Size(editor).x;
 
     for (s64 idx = 0; idx < editor->lines.size; idx++) {
         const auto line                     = editor->lines[idx];

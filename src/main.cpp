@@ -20,6 +20,7 @@
 #include "strings.hpp"
 
 const auto BG   = Vec4{0.137, 0.137, 0.176, 1.0};
+const auto BG_2 = Vec4{0.157, 0.157, 0.196, 1.0};
 const auto FG   = Vec4{1.0, 1.0, 1.0, 1.0};
 const auto FG_2 = Vec4{0.5, 0.5, 0.5, 1.0};
 
@@ -111,8 +112,8 @@ auto loop() -> void {
                         auto zoom = event.wheel.y < 0.f ? -0.1f : 0.1f;
                         Renderer_Zoom_Delta(zoom);
                         Font_Scale(monospace_font, Renderer_Zoom_Current());
+                        editor.scale = Renderer_Zoom_Current();
                         Editor_Font_Size_Changed(&editor);
-
                         did_input = true;
                     } else {
                         if (event.wheel.y < 0.f) {
@@ -121,6 +122,10 @@ auto loop() -> void {
                             Editor_Up(&editor);
                         }
                     }
+                    break;
+                case SDL_EVENT_KEY_UP:
+                    did_input = true;
+                    ctrl_down = event.key.mod & SDL_KMOD_CTRL;
                     break;
                 case SDL_EVENT_KEY_DOWN:
                     did_input = true;
@@ -157,6 +162,7 @@ auto loop() -> void {
                             if (ctrl_down) {
                                 Renderer_Zoom_Delta(0.1f);
                                 Font_Scale(monospace_font, Renderer_Zoom_Current());
+                                editor.scale = Renderer_Zoom_Current();
                                 Editor_Font_Size_Changed(&editor);
                             }
                             break;
@@ -165,6 +171,7 @@ auto loop() -> void {
                                 Renderer_Zoom_Delta(-0.1f);
                                 Font_Scale(monospace_font, Renderer_Zoom_Current());
                                 Editor_Font_Size_Changed(&editor);
+                                editor.scale = Renderer_Zoom_Current();
                             }
                             break;
                         case SDLK_F2:
@@ -247,13 +254,44 @@ auto draw(f32 dt) -> void {
     };
 
     Renderer_Clear(BG);
+
+    // Create grid
+    {
+        Renderer_Set_Color(BG_2);
+        const f32 grid_gap = 32.f;
+
+        f32 offset_x = fmodf(camera.x, grid_gap);
+        f32 offset_y = fmodf(camera.y, grid_gap);
+
+        for (f32 x = offset_x; x < window_size.x; x += grid_gap) {
+            Renderer_Draw_Rect({
+                .x = x,
+                .y = 0.f,
+                .w = 2.f,
+                .h = window_size.y,
+            });
+        }
+
+        for (f32 y = offset_y; y < window_size.y; y += grid_gap) {
+            Renderer_Draw_Rect({
+                .x = 0.f,
+                .y = y,
+                .w = window_size.x,
+                .h = 2.f,
+            });
+        }
+    }
+
     Renderer_Set_Color(FG);
     Render_Text(regular_font, "Title q8^)"_s, 100.f, 100.f);
+
+    auto editor_size = Editor_Size(&editor);
 
     s64 n_virtual_line = 0;
     for (s64 idx = 0; idx < editor.lines.size; idx++) {
         {
-            f32  y           = offset_y + f32(n_virtual_line) * line_height - was_scroll;
+            f32 y = offset_y + f32(n_virtual_line) * line_height - was_scroll;
+            if (y - offset_y > editor_size.y) break;
             auto line_no_str = Sprintf(buffer, sizeof(buffer), "%lu", idx + 1);
             auto line_no_dim = Calculate_Text_Dimensions_With_Font(font, line_no_str);
             if (ceilf(y + line_height - 1.f) >= offset_y) {
@@ -267,6 +305,7 @@ auto draw(f32 dt) -> void {
         for (auto virtual_line : virtual_lines) {
             auto slice = editor.buffer.slice(virtual_line.begin, virtual_line.end);
             f32  y     = offset_y + f32(n_virtual_line) * line_height - was_scroll;
+            if (y - offset_y > editor_size.y) break;
             if (ceilf(y + line_height - 1.f) >= offset_y) {
                 Render_Text(font, slice.data, slice.size, offset_x, y);
             }
@@ -280,8 +319,8 @@ auto draw(f32 dt) -> void {
     Rect editor_outline = {
         offset_x,
         offset_y,
-        editor.width * Renderer_Zoom_Current(),
-        editor.height * Renderer_Zoom_Current(),
+        editor_size.x,
+        editor_size.y,
     };
     Renderer_Draw_Outline(editor_outline);
     /*
