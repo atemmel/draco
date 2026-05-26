@@ -1,7 +1,5 @@
 #!/bin/cherry
 
-import fs
-
 output      := draco
 output-path := build/draco
 includes    := [ -Iinclude -I/usr/include/freetype2 ]

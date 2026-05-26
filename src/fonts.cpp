@@ -67,7 +67,7 @@ Font* monospace4_font;
 auto Init_Fonts(Allocator allocator) -> void {
     Assert(!FT_Init_FreeType(&ft_library));
 
-    monospace_font = Create_Font_From_Bytes(allocator, renderer, monospace_font_bytes, sizeof(monospace_font_bytes), 24);
+    monospace_font = Create_Font_From_Bytes(allocator, renderer, monospace_font_bytes, sizeof(monospace_font_bytes), 16);
     regular_font   = Create_Font_From_Bytes(allocator, renderer, regular_bold_italic_font_bytes, sizeof(regular_bold_italic_font_bytes), 24);
     // monospace2_font = Create_Font_From_Bytes(allocator, renderer, monospace2_font_bytes, sizeof(monospace2_font_bytes), 24);
     // monospace3_font = Create_Font_From_Bytes(allocator, renderer, monospace3_font_bytes, sizeof(monospace3_font_bytes), 24);
@@ -273,38 +273,6 @@ static auto Render_Font_To_Ascii_Surface(Font* font) -> SDL_Surface* {
             }
         }
     }
-
-    /*
-    for (auto charcode = FT_Get_First_Char(font->ft_face, &index);
-         index != 0;
-         charcode = FT_Get_Next_Char(font->ft_face, charcode, &index)) {
-        if (xpos < (font->glyphs_of_atlas_side_count - 1)) {
-            xpos++;
-        } else {
-            xpos = 0;
-            ypos++;
-        }
-
-        FT_Load_Char(font->ft_face, charcode, FT_LOAD_RENDER);
-        FT_Bitmap* bitmap = &font->ft_face->glyph->bitmap;
-        if (bitmap->pixel_mode != ft_pixel_mode_grays) {
-            break;
-        }
-
-        Set_Glyph_Metrics_Of_Font(font, index, xpos, ypos);
-
-        i32 xreal = xpos * font->font_metrics.ptsize;
-        i32 yreal = ypos * font->font_metrics.ptsize;
-        for (i32 y = 0; y < bitmap->rows; y++) {
-            for (i32 x = 0; x < bitmap->width; x++) {
-                i32  index = (yreal + y) * surface->w + xreal + x;
-                u32* pixel = &((u32*)surface->pixels)[index];
-                u8   alpha = bitmap->buffer[y * bitmap->pitch + x];
-                *pixel     = SDL_MapRGBA(SDL_GetPixelFormatDetails(surface->format), null, 255, 255, 255, alpha);
-            }
-        }
-    }
-    */
 
     return surface;
 }
