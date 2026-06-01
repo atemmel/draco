@@ -161,7 +161,7 @@ static auto Render_Char(const Font* font, u32 ch, u32 previous_ch, Vec2 position
     if (metrics) {
         SDL_Color color;
         SDL_FRect dstrect, srcrect = metrics->rect;
-        f32       offset = f32(font->ft_face->descender >> 6) + f32(font->ft_face->ascender >> 6);
+        f32       offset = 0;  // f32(font->ft_face->descender >> 6) + f32(font->ft_face->ascender >> 6);
 
         dstrect.x = position.x;
         dstrect.y = position.y + ((f32(-metrics->bearing.y) + f32(font->font_metrics.height) - offset));

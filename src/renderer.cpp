@@ -1,6 +1,7 @@
 #include "renderer.hpp"
 
 #include <SDL3/SDL_oldnames.h>
+#include <SDL3/SDL_rect.h>
 #include <SDL3/SDL_render.h>
 #include <SDL3/SDL_video.h>
 #include <unistd.h>
@@ -24,6 +25,41 @@ auto Set_Refresh_Rate(f32 display_fps) -> void {
     refresh_rate_ns = (1000 * 1000) / display_fps;
 }
 
+auto Hit_Test_Callback(Window window, const SDL_Point* hit, void*) -> SDL_HitTestResult {
+    const int mouse_grab_padding = 10;
+    int       width;
+    int       height;
+    SDL_GetWindowSize(window, &width, &height);
+
+    if (hit->y < mouse_grab_padding) {
+        if (hit->x < mouse_grab_padding) {
+            return SDL_HITTEST_RESIZE_TOPLEFT;
+        } else if (hit->x > width - mouse_grab_padding) {
+            return SDL_HITTEST_RESIZE_TOPRIGHT;
+        } else {
+            return SDL_HITTEST_RESIZE_TOP;
+        }
+    } else if (hit->y > height - mouse_grab_padding) {
+        if (hit->x < mouse_grab_padding) {
+            return SDL_HITTEST_RESIZE_BOTTOMLEFT;
+        } else if (hit->x > width - mouse_grab_padding) {
+            return SDL_HITTEST_RESIZE_BOTTOMRIGHT;
+        } else {
+            return SDL_HITTEST_RESIZE_BOTTOM;
+        }
+    } else if (hit->y < 200) {
+        // input.state.window_changed_somehow = false;
+        return SDL_HITTEST_DRAGGABLE;
+    } else if (hit->x < mouse_grab_padding) {
+        return SDL_HITTEST_RESIZE_LEFT;
+    } else if (hit->x > width - mouse_grab_padding) {
+        return SDL_HITTEST_RESIZE_RIGHT;
+    }
+
+    // input.state.window_changed_somehow = false;
+    return SDL_HITTEST_NORMAL;
+}
+
 auto Init_Renderer() -> void {
     auto display_mode = SDL_GetCurrentDisplayMode(SDL_GetPrimaryDisplay());
     Assert(display_mode);
@@ -31,7 +67,7 @@ auto Init_Renderer() -> void {
     refresh_rate_ns = display_mode->refresh_rate;
 
     auto window_flags = SDL_WINDOW_INPUT_FOCUS | SDL_WINDOW_HIGH_PIXEL_DENSITY |
-                        SDL_WINDOW_RESIZABLE | SDL_WINDOW_BORDERLESS;
+                        SDL_WINDOW_RESIZABLE;  // | SDL_WINDOW_BORDERLESS;
 
     window = SDL_CreateWindow(PROG_NAME, W, H, window_flags);
     Assert(window);
@@ -43,7 +79,7 @@ auto Init_Renderer() -> void {
     Assert(renderer);
 
     // TODO
-    // SDL_SetWindowHitTest
+    SDL_SetWindowHitTest(window, &Hit_Test_Callback, null);
 }
 
 auto Destroy_Renderer() -> void {
